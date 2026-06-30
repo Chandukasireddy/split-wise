@@ -658,7 +658,7 @@ export default function GroupDetailsClient({
                     const mySplit = expense.splits.find((s) => s.userId === currentUser.userId);
                     
                     return (
-                      <div key={expense.id} className="glass-card" style={styles.expenseItem}>
+                      <div key={expense.id} className="glass-card expense-item" style={styles.expenseItem}>
                         <div style={styles.expenseDateBadge}>
                           <span style={styles.dateMonth}>
                             {new Date(expense.date).toLocaleDateString(undefined, { month: "short" })}
@@ -668,12 +668,12 @@ export default function GroupDetailsClient({
                           </span>
                         </div>
 
-                        <div style={styles.expenseDetails}>
+                        <div className="expense-details" style={styles.expenseDetails}>
                           <h3 style={styles.expenseDesc}>{expense.description}</h3>
                           <div style={styles.expenseMeta}>
-                            <span className="badge" style={{ 
-                              backgroundColor: `${CATEGORY_COLORS[expense.category]}15`, 
-                              color: CATEGORY_COLORS[expense.category], 
+                            <span className="badge" style={{
+                              backgroundColor: `${CATEGORY_COLORS[expense.category]}15`,
+                              color: CATEGORY_COLORS[expense.category],
                               borderColor: `${CATEGORY_COLORS[expense.category]}40`,
                               borderWidth: "1px",
                               borderStyle: "solid",
@@ -685,9 +685,22 @@ export default function GroupDetailsClient({
                               paid by <strong>{payerName}</strong>
                             </span>
                           </div>
+                          {/* Mobile-only: show amount + share inline */}
+                          <div className="expense-mobile-meta" style={{ gap: "0.75rem", marginTop: "0.15rem", alignItems: "center" }}>
+                            <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                              {formatCurrency(expense.amount, expense.currency)}
+                            </span>
+                            {mySplit && (
+                              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: isCurrentUserPayer ? "var(--owed)" : "var(--owes)" }}>
+                                {isCurrentUserPayer
+                                  ? `you lent ${formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}`
+                                  : `you owe ${formatCurrency(mySplit.amount, group.defaultCurrency)}`}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        <div style={styles.expenseAmountCol}>
+                        <div className="expense-amount-col" style={styles.expenseAmountCol}>
                           <span style={styles.expenseTotalLabel}>Amount</span>
                           <span style={styles.expenseTotalValue}>
                             {formatCurrency(expense.amount, expense.currency)}
@@ -699,7 +712,7 @@ export default function GroupDetailsClient({
                           </span>
                         </div>
 
-                        <div style={styles.expenseShareCol}>
+                        <div className="expense-share-col" style={styles.expenseShareCol}>
                           {mySplit ? (
                             isCurrentUserPayer ? (
                               <>
@@ -721,7 +734,7 @@ export default function GroupDetailsClient({
                           )}
                         </div>
 
-                        <div style={{ display: "flex", gap: "0.25rem" }}>
+                        <div className="expense-action-btns" style={{ display: "flex", gap: "0.25rem" }}>
                           <button
                             onClick={() => openEditModal(expense)}
                             style={styles.editBtn}

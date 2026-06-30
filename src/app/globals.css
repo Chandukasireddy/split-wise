@@ -417,6 +417,31 @@ p {
   }
 }
 
+/* Mobile expense item — hide wide columns, show stacked layout */
+@media (max-width: 768px) {
+  .expense-amount-col,
+  .expense-share-col {
+    display: none !important;
+  }
+  .expense-item {
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+    padding: 0.75rem !important;
+  }
+  .expense-details {
+    min-width: 0;
+  }
+  .expense-action-btns {
+    margin-left: auto;
+  }
+  .expense-mobile-meta {
+    display: flex !important;
+  }
+}
+.expense-mobile-meta {
+  display: none;
+}
+
 /* Horizontal scrolling tabs on mobile */
 .tabs-scroll {
   overflow-x: auto;

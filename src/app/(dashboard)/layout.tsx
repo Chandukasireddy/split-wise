@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, getAuthenticatedUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/authActions";
 import { Wallet, LogOut, Settings } from "lucide-react";
 import PWAInstallButton from "@/components/PWAInstallButton";
@@ -19,8 +19,7 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const user = await getAuthenticatedUser();
-  const displayName = user?.name || session.username;
+  const displayName = session.username;
 
   async function handleLogout() {
     "use server";
