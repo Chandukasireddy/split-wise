@@ -3,9 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAuthenticatedUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/authActions";
-import { Wallet, LayoutDashboard, Activity, Users, LogOut } from "lucide-react";
+import { Wallet, LogOut, Settings } from "lucide-react";
 import PWAInstallButton from "@/components/PWAInstallButton";
 import BottomNav from "@/components/BottomNav";
+import NavLinks from "@/components/NavLinks";
 
 export default async function DashboardLayout({
   children,
@@ -40,33 +41,23 @@ export default async function DashboardLayout({
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="desktop-only" style={styles.navLinks}>
-            <Link href="/dashboard" style={styles.navLink}>
-              <LayoutDashboard size={18} />
-              <span>Dashboard</span>
-            </Link>
-            <Link href="/friends" style={styles.navLink}>
-              <Users size={18} />
-              <span>Friends</span>
-            </Link>
-            <Link href="/activities" style={styles.navLink}>
-              <Activity size={18} />
-              <span>Activity</span>
-            </Link>
+          <div className="desktop-only">
+            <NavLinks />
           </div>
 
           {/* Right-side: PWA button + Profile + Desktop Logout */}
           <div style={styles.userSection}>
             <PWAInstallButton />
 
-            <div className="desktop-only" style={styles.profileBadge}>
+            <Link href="/profile" className="desktop-only" style={styles.profileBadge}>
               <span style={styles.avatar}>
                 {displayName.charAt(0).toUpperCase()}
               </span>
               <span className="profile-username" style={styles.userName}>
                 {displayName}
               </span>
-            </div>
+              <Settings size={14} color="var(--text-muted)" />
+            </Link>
 
             <form action={handleLogout} className="desktop-only">
               <button type="submit" className="btn btn-secondary" style={styles.logoutBtn} title="Sign Out">
@@ -135,23 +126,6 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "-0.03em",
     color: "var(--text-primary)",
   },
-  navLinks: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.25rem",
-  },
-  navLink: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    color: "var(--text-secondary)",
-    fontSize: "0.9rem",
-    fontWeight: 500,
-    padding: "0.5rem 0.75rem",
-    borderRadius: "8px",
-    transition: "all 0.2s ease",
-    textDecoration: "none",
-  },
   userSection: {
     display: "flex",
     alignItems: "center",
@@ -165,6 +139,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.35rem 0.75rem",
     borderRadius: "20px",
     border: "1px solid rgba(0, 0, 0, 0.07)",
+    textDecoration: "none",
+    transition: "background 0.15s",
   },
   avatar: {
     width: "24px",

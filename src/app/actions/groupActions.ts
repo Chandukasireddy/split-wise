@@ -211,6 +211,44 @@ export async function addMembersToGroup(
 }
 
 /**
+ * Server action to update group name, description, and default currency.
+ */
+export async function updateGroupSettings(
+  groupId: string,
+  name: string,
+  description: string,
+  defaultCurrency: string
+): Promise<GroupActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized." };
+
+  const trimmedName = name.trim();
+  if (!trimmedName) return { success: false, error: "Group name is required." };
+
+  try {
+    const group = await db.group.findUnique({
+      where: { id: groupId },
+      select: { createdById: true, members: { select: { userId: true } } },
+    });
+
+    if (!group) return { success: false, error: "Group not found." };
+
+    const isMember = group.members.some((m) => m.userId === session.userId);
+    if (!isMember) return { success: false, error: "You are not a member of this group." };
+
+    await db.group.update({
+      where: { id: groupId },
+      data: { name: trimmedName, description: description.trim() || null, defaultCurrency },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Update group settings error:", err);
+    return { success: false, error: "Failed to update group settings." };
+  }
+}
+
+/**
  * Server action to delete a group and all its data.
  */
 export async function deleteGroup(groupId: string): Promise<GroupActionResult> {

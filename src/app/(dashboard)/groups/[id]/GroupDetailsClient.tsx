@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
 import { settleUp } from "@/app/actions/settleActions";
-import { searchUsers, addMembersToGroup, deleteGroup } from "@/app/actions/groupActions";
+import { searchUsers, addMembersToGroup, deleteGroup, updateGroupSettings } from "@/app/actions/groupActions";
 import { GroupCalculatedBalances } from "@/lib/balances";
 import {
   Users,
@@ -13,6 +13,7 @@ import {
   DollarSign,
   Trash2,
   Pencil,
+  Settings,
   PieChart as ChartIcon,
   FileDown,
   Calendar,
@@ -131,6 +132,14 @@ export default function GroupDetailsClient({
   // Delete Group state
   const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
   const [deleteGroupLoading, setDeleteGroupLoading] = useState(false);
+
+  // Group Settings state
+  const [showGroupSettingsModal, setShowGroupSettingsModal] = useState(false);
+  const [settingsName, setSettingsName] = useState(group.name);
+  const [settingsDesc, setSettingsDesc] = useState(group.description || "");
+  const [settingsCurrency, setSettingsCurrency] = useState(group.defaultCurrency);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
 
   // Add Member Form state
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -352,6 +361,21 @@ export default function GroupDetailsClient({
     setLoading(false);
   }
 
+  // Save group settings
+  async function handleGroupSettingsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSettingsLoading(true);
+    setSettingsError(null);
+    const res = await updateGroupSettings(group.id, settingsName, settingsDesc, settingsCurrency);
+    if (res.success) {
+      setShowGroupSettingsModal(false);
+      router.refresh();
+    } else {
+      setSettingsError(res.error || "Failed to save settings.");
+    }
+    setSettingsLoading(false);
+  }
+
   // Delete the entire group
   async function handleDeleteGroup() {
     setDeleteGroupLoading(true);
@@ -503,10 +527,18 @@ export default function GroupDetailsClient({
           Back to Dashboard
         </Link>
 
-        <div style={{ display: "flex", gap: "0.75rem" }}>
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <button onClick={handleCSVExport} className="btn btn-secondary" style={styles.exportBtn}>
             <FileDown size={16} />
             Export Ledger
+          </button>
+          <button
+            onClick={() => { setSettingsName(group.name); setSettingsDesc(group.description || ""); setSettingsCurrency(group.defaultCurrency); setShowGroupSettingsModal(true); }}
+            className="btn btn-secondary"
+            style={styles.exportBtn}
+          >
+            <Settings size={16} />
+            Group Settings
           </button>
           <button
             onClick={() => setShowDeleteGroupModal(true)}
@@ -1302,6 +1334,74 @@ export default function GroupDetailsClient({
         </div>
       )}
 
+      {/* Group Settings Modal */}
+      {showGroupSettingsModal && (
+        <div style={styles.modalOverlay}>
+          <div className="glass-card" style={styles.modalCard}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Group Settings</h2>
+              <button onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} style={styles.modalCloseBtn}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {settingsError && <div style={styles.modalErrorBox}>{settingsError}</div>}
+
+            <form onSubmit={handleGroupSettingsSubmit} style={styles.modalForm}>
+              <div style={styles.modalFormGroup}>
+                <label className="form-label">Group Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={settingsName}
+                  onChange={(e) => setSettingsName(e.target.value)}
+                  className="form-input"
+                  placeholder="e.g. Apartment roommates"
+                  disabled={settingsLoading}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label className="form-label">Description</label>
+                <textarea
+                  value={settingsDesc}
+                  onChange={(e) => setSettingsDesc(e.target.value)}
+                  className="form-input"
+                  placeholder="Optional description…"
+                  style={{ minHeight: "72px", resize: "vertical" }}
+                  disabled={settingsLoading}
+                />
+              </div>
+
+              <div style={styles.modalFormGroup}>
+                <label className="form-label">Default Currency</label>
+                <select
+                  value={settingsCurrency}
+                  onChange={(e) => setSettingsCurrency(e.target.value)}
+                  className="form-input"
+                  style={{ background: "#f8fafc" }}
+                  disabled={settingsLoading}
+                >
+                  {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                  Changing the currency only affects new expenses — existing balances keep their stored amounts.
+                </span>
+              </div>
+
+              <div style={styles.modalActions}>
+                <button type="button" onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} className="btn btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" disabled={settingsLoading} className="btn btn-primary">
+                  {settingsLoading ? "Saving…" : "Save Settings"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Group Confirmation Modal */}
       {showDeleteGroupModal && (
         <div style={styles.modalOverlay}>
@@ -2015,6 +2115,11 @@ const styles: Record<string, React.CSSProperties> = {
     right: "0.75rem",
     fontSize: "0.75rem",
     color: "var(--text-muted)",
+  },
+  modalFormGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem",
   },
   modalActions: {
     display: "flex",

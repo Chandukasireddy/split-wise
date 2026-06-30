@@ -2,6 +2,70 @@
 
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import bcrypt from "bcryptjs";
+
+export interface ProfileActionResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function updateProfileName(name: string): Promise<ProfileActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized." };
+  const trimmed = name.trim();
+  if (!trimmed) return { success: false, error: "Name cannot be empty." };
+  try {
+    await db.user.update({ where: { id: session.userId }, data: { name: trimmed } });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update name." };
+  }
+}
+
+export async function updateUsername(newUsername: string): Promise<ProfileActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized." };
+  const trimmed = newUsername.trim().toLowerCase();
+  if (!trimmed || trimmed.length < 3) return { success: false, error: "Username must be at least 3 characters." };
+  if (!/^[a-z0-9_]+$/.test(trimmed)) return { success: false, error: "Username can only contain letters, numbers, and underscores." };
+  try {
+    const existing = await db.user.findUnique({ where: { username: trimmed } });
+    if (existing && existing.id !== session.userId) return { success: false, error: "That username is already taken." };
+    await db.user.update({ where: { id: session.userId }, data: { username: trimmed } });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update username." };
+  }
+}
+
+export async function updatePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<ProfileActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized." };
+  if (newPassword.length < 8) return { success: false, error: "New password must be at least 8 characters." };
+  try {
+    const user = await db.user.findUnique({ where: { id: session.userId } });
+    if (!user) return { success: false, error: "User not found." };
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) return { success: false, error: "Current password is incorrect." };
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await db.user.update({ where: { id: session.userId }, data: { password: hashed } });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update password." };
+  }
+}
+
+export async function getCurrentUserProfile() {
+  const session = await getCurrentUser();
+  if (!session) return null;
+  return db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, name: true, username: true, createdAt: true },
+  });
+}
 
 export interface FriendInfo {
   id: string;
