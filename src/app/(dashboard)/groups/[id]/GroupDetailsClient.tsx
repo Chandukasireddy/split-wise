@@ -1373,9 +1373,7 @@ const styles: Record<string, React.CSSProperties> = {
   groupHeroName: {
     fontSize: "2.25rem",
     fontWeight: 800,
-    background: "linear-gradient(to right, #ffffff, #cbd5e1)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   groupHeroDesc: {
     fontSize: "0.95rem",
@@ -1455,7 +1453,7 @@ const styles: Record<string, React.CSSProperties> = {
   dateDay: {
     fontSize: "1.1rem",
     fontWeight: 700,
-    color: "#fff",
+    color: "var(--text-primary)",
     lineHeight: 1,
   },
   expenseDetails: {
@@ -1467,7 +1465,7 @@ const styles: Record<string, React.CSSProperties> = {
   expenseDesc: {
     fontSize: "1rem",
     fontWeight: 600,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   expenseMeta: {
     display: "flex",
@@ -1552,7 +1550,7 @@ const styles: Record<string, React.CSSProperties> = {
   sidebarMemberName: {
     fontSize: "0.875rem",
     fontWeight: 500,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   sidebarMemberUsername: {
     fontSize: "0.75rem",
@@ -1596,7 +1594,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   debtUser: {
     fontWeight: 600,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   debtArrow: {
     color: "var(--text-muted)",
@@ -1695,7 +1693,7 @@ const styles: Record<string, React.CSSProperties> = {
   legendCategoryName: {
     fontSize: "0.9rem",
     fontWeight: 500,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   legendRight: {
     display: "flex",
@@ -1705,7 +1703,7 @@ const styles: Record<string, React.CSSProperties> = {
   legendAmount: {
     fontSize: "0.9rem",
     fontWeight: 600,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   legendPercent: {
     fontSize: "0.75rem",
@@ -1800,7 +1798,7 @@ const styles: Record<string, React.CSSProperties> = {
   splitMemberName: {
     fontSize: "0.875rem",
     fontWeight: 500,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   splitCheckbox: {
     width: "18px",

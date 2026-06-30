@@ -193,9 +193,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.35rem",
     fontFamily: "var(--font-brand)",
     letterSpacing: "-0.03em",
-    background: "linear-gradient(to right, #ffffff, #cbd5e1)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   headerActions: {
     display: "flex",
@@ -246,9 +244,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   gradientText: {
     background: "linear-gradient(to right, #6366f1, #a855f7, #ec4899)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
+    },
   heroDescription: {
     fontSize: "1.15rem",
     color: "var(--text-secondary)",

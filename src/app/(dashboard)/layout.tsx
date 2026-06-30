@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAuthenticatedUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/authActions";
-import { Wallet, LayoutDashboard, Activity, LogOut } from "lucide-react";
+import { Wallet, LayoutDashboard, Activity, LogOut, Plus } from "lucide-react";
 import PWAInstallButton from "@/components/PWAInstallButton";
 
 export default async function DashboardLayout({
@@ -38,7 +38,7 @@ export default async function DashboardLayout({
             <span style={styles.brandText}>SplitEasy</span>
           </Link>
 
-          <div style={styles.navLinks}>
+          <div className="desktop-only" style={styles.navLinks}>
             <Link href="/dashboard" style={styles.navLink}>
               <LayoutDashboard size={18} />
               <span>Dashboard</span>
@@ -52,14 +52,14 @@ export default async function DashboardLayout({
           <div style={styles.userSection}>
             <PWAInstallButton />
 
-            <div style={styles.profileBadge}>
+            <div className="desktop-only" style={styles.profileBadge}>
               <span style={styles.avatar}>
                 {displayName.charAt(0).toUpperCase()}
               </span>
               <span style={styles.userName}>{displayName}</span>
             </div>
 
-            <form action={handleLogout}>
+            <form action={handleLogout} className="desktop-only">
               <button type="submit" className="btn btn-secondary" style={styles.logoutBtn} title="Sign Out">
                 <LogOut size={16} />
                 <span style={styles.logoutText}>Logout</span>
@@ -73,6 +73,30 @@ export default async function DashboardLayout({
       <main className="container" style={styles.mainContent}>
         {children}
       </main>
+
+      {/* Bottom Nav Bar for Mobile Devices */}
+      <nav className="bottom-nav">
+        <Link href="/dashboard" className="bottom-nav-link">
+          <LayoutDashboard size={20} />
+          <span>Dashboard</span>
+        </Link>
+        <Link href="/groups/new" className="bottom-nav-link bottom-nav-center">
+          <div className="bottom-nav-plus">
+            <Plus size={24} color="#fff" />
+          </div>
+          <span>New Group</span>
+        </Link>
+        <Link href="/activities" className="bottom-nav-link">
+          <Activity size={20} />
+          <span>Activity</span>
+        </Link>
+        <form action={handleLogout} style={{ display: "contents" }}>
+          <button type="submit" className="bottom-nav-btn">
+            <LogOut size={20} />
+            <span>Logout</span>
+          </button>
+        </form>
+      </nav>
     </div>
   );
 }
@@ -121,9 +145,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.25rem",
     fontFamily: "var(--font-brand)",
     letterSpacing: "-0.03em",
-    background: "linear-gradient(to right, #ffffff, #e2e8f0)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   navLinks: {
     display: "flex",

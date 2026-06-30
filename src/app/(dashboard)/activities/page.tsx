@@ -133,9 +133,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "0.75rem",
-    background: "linear-gradient(to right, #ffffff, #cbd5e1)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   subtitle: {
     fontSize: "0.95rem",

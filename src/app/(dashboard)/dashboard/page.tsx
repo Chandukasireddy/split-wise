@@ -294,9 +294,7 @@ const styles: Record<string, React.CSSProperties> = {
   welcomeTitle: {
     fontSize: "2.25rem",
     fontWeight: 800,
-    background: "linear-gradient(to right, #ffffff, #cbd5e1)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   welcomeSubtitle: {
     fontSize: "0.95rem",
@@ -436,7 +434,7 @@ const styles: Record<string, React.CSSProperties> = {
   groupName: {
     fontSize: "1.05rem",
     fontWeight: 600,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   groupDesc: {
     fontSize: "0.85rem",

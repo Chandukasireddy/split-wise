@@ -300,9 +300,7 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: "2rem",
     fontWeight: 800,
-    background: "linear-gradient(to right, #ffffff, #cbd5e1)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   subtitle: {
     fontSize: "0.95rem",

@@ -14,6 +14,17 @@ export default function PWAInstallButton() {
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     // 1. Check if already running in standalone mode (already installed)
@@ -68,6 +79,20 @@ export default function PWAInstallButton() {
     };
   }, []);
 
+  useEffect(() => {
+    if (isInstallable && !isInstalled && isMobile) {
+      const dismissed = localStorage.getItem("pwa-prompt-dismissed");
+      if (dismissed !== "true") {
+        setShowBanner(true);
+      }
+    }
+  }, [isInstallable, isInstalled, isMobile]);
+
+  const dismissBanner = () => {
+    localStorage.setItem("pwa-prompt-dismissed", "true");
+    setShowBanner(false);
+  };
+
   const handleInstallClick = async () => {
     if (isIOS) {
       // Show iOS manual instructions
@@ -87,22 +112,53 @@ export default function PWAInstallButton() {
     setIsInstallable(false);
   };
 
-  // Do not show anything if the app is already installed or is not installable on this browser
-  if (isInstalled || !isInstallable) {
+  const handleInstallClickAndDismiss = async () => {
+    dismissBanner();
+    await handleInstallClick();
+  };
+
+  // Do not show anything if the app is already installed
+  if (isInstalled) {
     return null;
   }
 
   return (
     <>
-      <button
-        onClick={handleInstallClick}
-        style={styles.installBtn}
-        className="btn btn-secondary"
-        title="Download Application"
-      >
-        <Download size={15} color="var(--primary)" />
-        <span style={styles.btnText}>Download</span>
-      </button>
+      {/* Desktop Header Install Button */}
+      {!isMobile && isInstallable && (
+        <button
+          onClick={handleInstallClick}
+          style={styles.installBtn}
+          className="btn btn-secondary"
+          title="Download Application"
+        >
+          <Download size={15} color="var(--primary)" />
+          <span style={styles.btnText}>Download</span>
+        </button>
+      )}
+
+      {/* Mobile Slide-up Auto-Prompt Banner */}
+      {showBanner && (
+        <div style={styles.mobileBanner} className="animate-fade-in">
+          <div style={styles.bannerLeft}>
+            <div style={styles.bannerIconBadge}>
+              <Smartphone size={20} color="var(--primary)" />
+            </div>
+            <div style={styles.bannerTextContainer}>
+              <div style={styles.bannerTitle}>Install SplitEasy</div>
+              <div style={styles.bannerDesc}>Add to your home screen for quick offline splitting.</div>
+            </div>
+          </div>
+          <div style={styles.bannerActions}>
+            <button onClick={handleInstallClickAndDismiss} className="btn btn-primary" style={styles.bannerBtnInstall}>
+              Install
+            </button>
+            <button onClick={dismissBanner} style={styles.bannerBtnClose} title="Dismiss">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* iOS Manual Install Modal */}
       {showIOSModal && (
@@ -256,5 +312,70 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "4px",
     fontSize: "0.8rem",
     whiteSpace: "nowrap",
+  },
+  mobileBanner: {
+    position: "fixed",
+    bottom: "80px",
+    left: "1rem",
+    right: "1rem",
+    backgroundColor: "var(--surface)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "16px",
+    padding: "1rem",
+    boxShadow: "0 8px 30px rgba(0, 0, 0, 0.08)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "1rem",
+    zIndex: 9999,
+  },
+  bannerLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+  },
+  bannerIconBadge: {
+    background: "rgba(16, 185, 129, 0.1)",
+    padding: "0.5rem",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  bannerTextContainer: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  bannerTitle: {
+    fontWeight: 700,
+    fontSize: "0.95rem",
+    color: "var(--text-primary)",
+  },
+  bannerDesc: {
+    fontSize: "0.75rem",
+    color: "var(--text-secondary)",
+    marginTop: "0.15rem",
+    lineHeight: 1.3,
+  },
+  bannerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    flexShrink: 0,
+  },
+  bannerBtnInstall: {
+    padding: "0.45rem 1rem",
+    fontSize: "0.85rem",
+  },
+  bannerBtnClose: {
+    background: "transparent",
+    border: "none",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    padding: "0.25rem",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 };

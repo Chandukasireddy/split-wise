@@ -150,9 +150,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     fontFamily: "var(--font-brand)",
     letterSpacing: "-0.03em",
-    background: "linear-gradient(to right, #ffffff, #94a3b8)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
+    color: "var(--text-primary)",
   },
   signupCard: {
     width: "100%",
