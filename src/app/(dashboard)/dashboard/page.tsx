@@ -8,10 +8,6 @@ import {
   Plus, 
   ArrowUpRight, 
   ArrowDownLeft, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Calendar, 
   Activity, 
   ChevronRight,
   Sparkles

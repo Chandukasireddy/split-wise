@@ -82,7 +82,7 @@ export async function addExpense(
       const baseShare = Math.floor((convertedAmount / shareCount) * 100) / 100;
       let remainder = parseFloat((convertedAmount - baseShare * shareCount).toFixed(2));
 
-      calculatedSplits = splits.map((s, idx) => {
+      calculatedSplits = splits.map((s) => {
         // Distribute remainder (cents) to the first few users to avoid rounding errors
         let userAmount = baseShare;
         if (remainder > 0) {

@@ -29,11 +29,15 @@ export default function NewGroupPage() {
   // Search users as the user types (debounced)
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
+      const timer = setTimeout(() => {
+        setSearchResults([]);
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
-    setSearchLoading(true);
+    const startTimer = setTimeout(() => {
+      setSearchLoading(true);
+    }, 0);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -50,6 +54,7 @@ export default function NewGroupPage() {
     }, 300);
 
     return () => {
+      clearTimeout(startTimer);
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
   }, [searchQuery, addedMembers]);

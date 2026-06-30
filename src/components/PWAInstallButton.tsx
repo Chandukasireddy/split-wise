@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Download, X, HelpCircle, Smartphone, Share } from "lucide-react";
+import { Download, X, Smartphone, Share } from "lucide-react";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
 
 export default function PWAInstallButton() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
@@ -14,19 +19,21 @@ export default function PWAInstallButton() {
     // 1. Check if already running in standalone mode (already installed)
     const isStandalone = 
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
-
-    setIsInstalled(isStandalone);
-
-    if (isStandalone) return;
+      !!(window.navigator as Navigator & { standalone?: boolean }).standalone;
 
     // 2. Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
-    setIsIOS(isIOSDevice);
-    if (isIOSDevice) {
-      setIsInstallable(true); // Always offer iOS help if not already standalone
-    }
+
+    // Defer state updates to avoid synchronous cascading renders warning
+    const timer = setTimeout(() => {
+      setIsInstalled(isStandalone);
+      if (isStandalone) return;
+      setIsIOS(isIOSDevice);
+      if (isIOSDevice) {
+        setIsInstallable(true);
+      }
+    }, 0);
 
     // 3. Register Service Worker
     if ("serviceWorker" in navigator) {
@@ -38,7 +45,7 @@ export default function PWAInstallButton() {
     // 4. Capture native install prompt (Android / Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsInstallable(true);
     };
 
@@ -55,6 +62,7 @@ export default function PWAInstallButton() {
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
@@ -129,14 +137,14 @@ export default function PWAInstallButton() {
               <div style={styles.stepItem}>
                 <div style={styles.stepNumber}>2</div>
                 <div style={styles.stepText}>
-                  Scroll down the action sheet menu and select **"Add to Home Screen"**.
+                  Scroll down the action sheet menu and select **&quot;Add to Home Screen&quot;**.
                 </div>
               </div>
 
               <div style={styles.stepItem}>
                 <div style={styles.stepNumber}>3</div>
                 <div style={styles.stepText}>
-                  Tap **"Add"** in the top-right corner to complete the install.
+                  Tap **&quot;Add&quot;** in the top-right corner to complete the install.
                 </div>
               </div>
             </div>

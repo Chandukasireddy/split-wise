@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addExpense, deleteExpense } from "@/app/actions/expenseActions";
 import { settleUp } from "@/app/actions/settleActions";
+import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
 import { GroupCalculatedBalances } from "@/lib/balances";
 import { 
   Users, 
@@ -14,12 +15,11 @@ import {
   PieChart as ChartIcon, 
   FileDown, 
   Calendar,
-  Layers,
   ArrowRight,
   X,
   PlusCircle,
-  HelpCircle,
-  PiggyBank
+  PiggyBank,
+  Share2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -118,6 +118,16 @@ export default function GroupDetailsClient({
   const [settlePayee, setSettlePayee] = useState("");
   const [settleAmt, setSettleAmt] = useState("");
   const [settleCurrency, setSettleCurrency] = useState(group.defaultCurrency);
+  
+  // Add Member Form state
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [memberSearchResults, setMemberSearchResults] = useState<Member[]>([]);
+  const [membersToAdd, setMembersToAdd] = useState<Member[]>([]);
+  const [addMemberLoading, setAddMemberLoading] = useState(false);
+  const [addMemberError, setAddMemberError] = useState<string | null>(null);
+  const memberSearchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const members = group.members.map((m) => m.user);
 
@@ -135,8 +145,11 @@ export default function GroupDetailsClient({
         initial[m.id] = "true"; // checklist representation
       }
     });
-    setCustomSplits(initial);
-  }, [expenseSplitType]);
+    const timer = setTimeout(() => {
+      setCustomSplits(initial);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [expenseSplitType, members]);
 
   // Handle opening settle up modal from simplified debts list
   const handleSettleUpDirect = (fromId: string, toId: string, amt: number, curr: string) => {
@@ -247,6 +260,70 @@ export default function GroupDetailsClient({
     }
   }
 
+  // Debounced member search
+  React.useEffect(() => {
+    if (memberSearchQuery.trim().length < 2) {
+      const timer = setTimeout(() => {
+        setMemberSearchResults([]);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+
+    if (memberSearchTimeoutRef.current) {
+      clearTimeout(memberSearchTimeoutRef.current);
+    }
+
+    memberSearchTimeoutRef.current = setTimeout(async () => {
+      const results = await searchUsers(memberSearchQuery);
+      // Filter out users who are already in the group or already added to the list
+      const filtered = results.filter(
+        (r) => 
+          !members.some((m) => m.id === r.id) &&
+          !membersToAdd.some((m) => m.id === r.id)
+      );
+      setMemberSearchResults(filtered);
+    }, 400);
+
+    return () => {
+      if (memberSearchTimeoutRef.current) {
+        clearTimeout(memberSearchTimeoutRef.current);
+      }
+    };
+  }, [memberSearchQuery, members, membersToAdd]);
+
+  // Handle addition of new members to group
+  async function handleAddMembersSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAddMemberError(null);
+
+    if (membersToAdd.length === 0) {
+      setAddMemberError("Please select at least one member to add.");
+      return;
+    }
+
+    setAddMemberLoading(true);
+    const memberIds = membersToAdd.map((m) => m.id);
+    const res = await addMembersToGroup(group.id, memberIds);
+
+    if (res.success) {
+      setShowAddMemberModal(false);
+      setMembersToAdd([]);
+      setMemberSearchQuery("");
+      router.refresh();
+    } else {
+      setAddMemberError(res.error || "Failed to add members.");
+    }
+    setAddMemberLoading(false);
+  }
+
+  // Copy Group Invite Link
+  function handleCopyInviteLink() {
+    const inviteUrl = `${window.location.origin}/groups/join/${group.id}`;
+    navigator.clipboard.writeText(inviteUrl);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
+
   // CSV Export utility
   function handleCSVExport() {
     const headers = ["Date", "Description", "Category", "Paid By", "Total Amount", "Currency"];
@@ -295,20 +372,22 @@ export default function GroupDetailsClient({
     });
 
   // SVG Donut Chart sectors calculation
+  const chartSegments: { category: string; amount: number; percentage: number; startPercent: number; color: string }[] = [];
   let cumulativePercent = 0;
-  const chartSegments = CATEGORIES.map((cat) => {
+  for (const cat of CATEGORIES) {
     const amount = categoryTotals[cat];
     const percentage = totalSpentInCurrency > 0 ? (amount / totalSpentInCurrency) * 100 : 0;
-    const startPercent = cumulativePercent;
-    cumulativePercent += percentage;
-    return {
-      category: cat,
-      amount,
-      percentage,
-      startPercent,
-      color: CATEGORY_COLORS[cat],
-    };
-  }).filter((seg) => seg.percentage > 0);
+    if (percentage > 0) {
+      chartSegments.push({
+        category: cat,
+        amount,
+        percentage,
+        startPercent: cumulativePercent,
+        color: CATEGORY_COLORS[cat],
+      });
+      cumulativePercent += percentage;
+    }
+  }
 
   return (
     <div style={styles.container} className="animate-fade-in">
@@ -400,7 +479,7 @@ export default function GroupDetailsClient({
                 <div className="glass-card" style={styles.emptyStateCard}>
                   <DollarSign size={40} color="var(--text-muted)" style={{ marginBottom: "1rem" }} />
                   <h3>No expenses yet</h3>
-                  <p>Click "Add Expense" to register the first shared bill.</p>
+                  <p>Click &quot;Add Expense&quot; to register the first shared bill.</p>
                 </div>
               ) : (
                 <div style={styles.expenseList}>
@@ -492,10 +571,62 @@ export default function GroupDetailsClient({
             {/* Sidebar with Quick balance breakdown */}
             <div style={styles.sidebarColumn}>
               <div className="glass-card" style={styles.sidebarCard}>
-                <h3 style={styles.sidebarTitle}>
-                  <Users size={16} color="var(--primary)" />
-                  Group Members
-                </h3>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                  <h3 style={{ ...styles.sidebarTitle, marginBottom: 0 }}>
+                    <Users size={16} color="var(--primary)" />
+                    Group Members
+                  </h3>
+                  <div style={{ display: "flex", gap: "0.4rem" }}>
+                    <button
+                      type="button"
+                      onClick={handleCopyInviteLink}
+                      style={{
+                        background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                        border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(255, 255, 255, 0.1)",
+                        color: inviteCopied ? "var(--owed)" : "var(--text-muted)",
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      <Share2 size={12} />
+                      {inviteCopied ? "Copied!" : "Invite Link"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMemberModal(true)}
+                      style={{
+                        background: "rgba(99, 102, 241, 0.15)",
+                        border: "1px solid rgba(99, 102, 241, 0.3)",
+                        color: "var(--primary)",
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "0.375rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        transition: "all 0.2s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(99, 102, 241, 0.25)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "rgba(99, 102, 241, 0.15)";
+                      }}
+                    >
+                      <PlusCircle size={12} />
+                      Add
+                    </button>
+                  </div>
+                </div>
                 <div style={styles.memberBalancesList}>
                   {members.map((member) => {
                     return (
@@ -852,7 +983,7 @@ export default function GroupDetailsClient({
                   <select
                     id="expSplit"
                     value={expenseSplitType}
-                    onChange={(e) => setExpenseSplitType(e.target.value as any)}
+                    onChange={(e) => setExpenseSplitType(e.target.value as "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES")}
                     className="form-input"
                     style={{ background: "#0f172a" }}
                   >
@@ -1041,6 +1172,163 @@ export default function GroupDetailsClient({
                 </button>
                 <button type="submit" disabled={loading} className="btn btn-primary">
                   {loading ? "Recording..." : "Record Settlement"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div style={styles.modalOverlay}>
+          <div className="glass-card" style={styles.modalCard}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Add Members to Group</h2>
+              <button 
+                type="button"
+                onClick={() => { 
+                  setShowAddMemberModal(false); 
+                  setMemberSearchQuery("");
+                  setMembersToAdd([]);
+                  setAddMemberError(null); 
+                }} 
+                style={styles.modalCloseBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {addMemberError && <div style={styles.modalErrorBox}>{addMemberError}</div>}
+
+            <form onSubmit={handleAddMembersSubmit} style={styles.modalForm}>
+              <div style={styles.modalFormGroup}>
+                <label className="form-label">Search Users (by name or username)</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="Type name (min 2 chars)..."
+                    value={memberSearchQuery}
+                    onChange={(e) => setMemberSearchQuery(e.target.value)}
+                    className="form-input"
+                  />
+                  {memberSearchQuery.trim().length >= 2 && memberSearchResults.length === 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#0f172a",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "0.375rem",
+                      padding: "0.5rem",
+                      fontSize: "0.85rem",
+                      color: "var(--text-muted)",
+                      zIndex: 10,
+                      marginTop: "0.25rem"
+                    }}>
+                      No new users found matching &quot;{memberSearchQuery}&quot;
+                    </div>
+                  )}
+                  {memberSearchResults.length > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      background: "#0f172a",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "0.375rem",
+                      maxHeight: "150px",
+                      overflowY: "auto",
+                      zIndex: 10,
+                      marginTop: "0.25rem"
+                    }}>
+                      {memberSearchResults.map((user) => (
+                        <div
+                          key={user.id}
+                          onClick={() => {
+                            setMembersToAdd((prev) => [...prev, user]);
+                            setMemberSearchQuery("");
+                            setMemberSearchResults([]);
+                          }}
+                          style={{
+                            padding: "0.5rem",
+                            cursor: "pointer",
+                            fontSize: "0.85rem",
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <strong>{user.name}</strong> (@{user.username})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {membersToAdd.length > 0 && (
+                <div style={styles.modalFormGroup}>
+                  <label className="form-label">Members to Add:</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                    {membersToAdd.map((m) => (
+                      <div
+                        key={m.id}
+                        style={{
+                          background: "rgba(99, 102, 241, 0.15)",
+                          border: "1px solid rgba(99, 102, 241, 0.3)",
+                          color: "var(--primary)",
+                          padding: "0.25rem 0.5rem",
+                          borderRadius: "9999px",
+                          fontSize: "0.8rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.25rem"
+                        }}
+                      >
+                        {m.name}
+                        <button
+                          type="button"
+                          onClick={() => setMembersToAdd((prev) => prev.filter((item) => item.id !== m.id))}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "var(--primary)",
+                            cursor: "pointer",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center"
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={styles.modalActions}>
+                <button 
+                  type="button" 
+                  onClick={() => { 
+                    setShowAddMemberModal(false); 
+                    setMemberSearchQuery("");
+                    setMembersToAdd([]);
+                    setAddMemberError(null); 
+                  }} 
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={addMemberLoading || membersToAdd.length === 0} 
+                  className="btn btn-primary"
+                >
+                  {addMemberLoading ? "Adding..." : "Add Members"}
                 </button>
               </div>
             </form>

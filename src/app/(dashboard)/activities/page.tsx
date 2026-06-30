@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ArrowLeft, Activity, Users, Calendar } from "lucide-react";
+import { ArrowLeft, Activity, Calendar } from "lucide-react";
 
 export const revalidate = 0; // Fresh calculations on every request
 

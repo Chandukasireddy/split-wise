@@ -6,10 +6,8 @@ import {
   ArrowRight, 
   Sparkles, 
   Users, 
-  TrendingUp, 
   PieChart as ChartIcon, 
   FileSpreadsheet, 
-  CheckCircle2, 
   Coins
 } from "lucide-react";
 

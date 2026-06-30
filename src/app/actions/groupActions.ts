@@ -129,3 +129,139 @@ export async function createGroup(
     return { success: false, error: "Failed to create group." };
   }
 }
+
+/**
+ * Server action to add new members to an existing group.
+ */
+export async function addMembersToGroup(
+  groupId: string,
+  memberIds: string[]
+): Promise<GroupActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized. Please log in." };
+  }
+
+  if (!groupId) {
+    return { success: false, error: "Group ID is required." };
+  }
+
+  if (memberIds.length === 0) {
+    return { success: false, error: "Please select at least one member to add." };
+  }
+
+  try {
+    // 1. Check if group exists and if requesting user is currently a member
+    const group = await db.group.findUnique({
+      where: { id: groupId },
+      include: { members: true },
+    });
+
+    if (!group) {
+      return { success: false, error: "Group not found." };
+    }
+
+    const isMember = group.members.some((m) => m.userId === session.userId);
+    if (!isMember) {
+      return { success: false, error: "You are not authorized to add members to this group." };
+    }
+
+    // 2. Filter out user IDs that are already group members
+    const existingMemberIds = new Set(group.members.map((m) => m.userId));
+    const newMemberIds = Array.from(new Set(memberIds)).filter(
+      (id) => !existingMemberIds.has(id)
+    );
+
+    if (newMemberIds.length === 0) {
+      return { success: false, error: "All selected users are already members of this group." };
+    }
+
+    // 3. Add members and log activity inside a transaction
+    await db.$transaction(async (tx) => {
+      // Create group members
+      await tx.groupMember.createMany({
+        data: newMemberIds.map((id) => ({
+          groupId,
+          userId: id,
+        })),
+      });
+
+      // Fetch user names of the new members for the activity log
+      const newUsers = await tx.user.findMany({
+        where: { id: { in: newMemberIds } },
+        select: { name: true },
+      });
+      const namesList = newUsers.map((u) => u.name).join(", ");
+
+      // Create activity log
+      await tx.activityLog.create({
+        data: {
+          userId: session.userId,
+          groupId,
+          description: `added ${namesList} to the group`,
+        },
+      });
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Add members to group error:", err);
+    return { success: false, error: "Failed to add members to the group." };
+  }
+}
+
+/**
+ * Server action to join a group using an invite link.
+ */
+export async function joinGroup(groupId: string): Promise<GroupActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized. Please log in." };
+  }
+
+  if (!groupId) {
+    return { success: false, error: "Group ID is required." };
+  }
+
+  try {
+    // 1. Verify group exists
+    const group = await db.group.findUnique({
+      where: { id: groupId },
+      include: { members: true },
+    });
+
+    if (!group) {
+      return { success: false, error: "Group not found." };
+    }
+
+    // 2. Check if user is already a member
+    const isAlreadyMember = group.members.some((m) => m.userId === session.userId);
+    if (isAlreadyMember) {
+      return { success: true, groupId: group.id }; // Idempotent success
+    }
+
+    // 3. Add user as a member and log activity
+    await db.$transaction(async (tx) => {
+      await tx.groupMember.create({
+        data: {
+          groupId: group.id,
+          userId: session.userId,
+        },
+      });
+
+      // Log activity
+      await tx.activityLog.create({
+        data: {
+          userId: session.userId,
+          groupId: group.id,
+          description: "joined the group via invite link",
+        },
+      });
+    });
+
+    return { success: true, groupId: group.id };
+  } catch (err) {
+    console.error("Join group error:", err);
+    return { success: false, error: "Failed to join the group." };
+  }
+}

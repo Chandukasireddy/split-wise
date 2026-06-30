@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAuthenticatedUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/authActions";
-import { Wallet, LayoutDashboard, Users, Activity, LogOut } from "lucide-react";
+import { Wallet, LayoutDashboard, Activity, LogOut } from "lucide-react";
 import PWAInstallButton from "@/components/PWAInstallButton";
 
 export default async function DashboardLayout({
