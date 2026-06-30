@@ -58,6 +58,20 @@ export async function updatePassword(
   }
 }
 
+export async function deleteActivityLog(logId: string): Promise<ProfileActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized." };
+  try {
+    const log = await db.activityLog.findUnique({ where: { id: logId }, select: { userId: true } });
+    if (!log) return { success: false, error: "Activity not found." };
+    if (log.userId !== session.userId) return { success: false, error: "You can only delete your own activities." };
+    await db.activityLog.delete({ where: { id: logId } });
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to delete activity." };
+  }
+}
+
 export async function getCurrentUserProfile() {
   const session = await getCurrentUser();
   if (!session) return null;

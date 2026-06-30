@@ -342,18 +342,45 @@ p {
   font-size: 1.35rem !important;
 }
 
+/* Mobile-first responsive grids */
+.grid-3-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.grid-2-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
 @media (max-width: 768px) {
   .page-title {
     font-size: 1.25rem !important;
   }
   .balance-value {
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
   }
   .profile-username {
     max-width: 75px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .grid-3-cols {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  .grid-2-cols {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  .container {
+    padding: 0 1rem;
+  }
+  .glass-card {
+    border-radius: 12px;
   }
 }
 

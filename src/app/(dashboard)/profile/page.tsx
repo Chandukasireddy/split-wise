@@ -131,7 +131,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={styles.sectionsGrid}>
+      <div className="grid-2-cols">
         {/* Display Name */}
         <div className="glass-card" style={styles.section}>
           <div style={styles.sectionHeader}>
@@ -196,7 +196,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Password */}
-        <div className="glass-card" style={{ ...styles.section, gridColumn: "1 / -1" }}>
+        <div className="glass-card" style={{ ...styles.section, gridColumn: "1 / -1" }} data-full-width="true">
           <div style={styles.sectionHeader}>
             <div style={styles.sectionIconBox}><Lock size={18} color="var(--primary)" /></div>
             <div>
@@ -204,7 +204,7 @@ export default function ProfilePage() {
               <p style={styles.sectionDesc}>Use a strong password of at least 8 characters.</p>
             </div>
           </div>
-          <form onSubmit={handlePasswordSubmit} style={{ ...styles.form, ...styles.pwForm }}>
+          <form onSubmit={handlePasswordSubmit} className="grid-2-cols" style={{ gap: "1rem" }}>
             <div style={styles.field}>
               <label className="form-label">Current Password</label>
               <input
@@ -267,10 +267,11 @@ const styles: Record<string, React.CSSProperties> = {
   pageTitle: { fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" },
   pageSubtitle: { fontSize: "0.95rem", color: "var(--text-secondary)" },
   avatarCard: {
-    padding: "1.5rem 2rem",
+    padding: "1.25rem 1.5rem",
     display: "flex",
     alignItems: "center",
-    gap: "1.25rem",
+    gap: "1rem",
+    flexWrap: "wrap",
   },
   avatarCircle: {
     width: "64px", height: "64px", borderRadius: "50%",
@@ -281,12 +282,7 @@ const styles: Record<string, React.CSSProperties> = {
   avatarName: { fontSize: "1.15rem", fontWeight: 700, color: "var(--text-primary)" },
   avatarUsername: { fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600, marginTop: "0.15rem" },
   avatarSince: { fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.25rem" },
-  sectionsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "1.5rem",
-  },
-  section: { padding: "1.75rem", display: "flex", flexDirection: "column", gap: "1.25rem" },
+  section: { padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" },
   sectionHeader: { display: "flex", alignItems: "flex-start", gap: "0.875rem" },
   sectionIconBox: {
     width: "40px", height: "40px", borderRadius: "10px", flexShrink: 0,
