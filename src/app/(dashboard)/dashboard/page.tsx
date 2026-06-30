@@ -249,7 +249,7 @@ export default async function DashboardPage() {
                 {recentActivities.map((log, index) => (
                   <div key={log.id} style={{
                     ...styles.activityItem,
-                    borderBottom: index === recentActivities.length - 1 ? "none" : "1px solid rgba(255, 255, 255, 0.05)"
+                    borderBottom: index === recentActivities.length - 1 ? "none" : "1px solid rgba(0, 0, 0, )"
                   }}>
                     <div style={styles.activityAvatar}>
                       {log.user.name.charAt(0).toUpperCase()}
@@ -385,7 +385,7 @@ const styles: Record<string, React.CSSProperties> = {
   sectionCount: {
     fontSize: "0.85rem",
     color: "var(--text-muted)",
-    background: "rgba(255, 255, 255, 0.05)",
+    background: "rgba(0, 0, 0, )",
     padding: "0.2rem 0.6rem",
     borderRadius: "20px",
   },
@@ -488,7 +488,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "28px",
     height: "28px",
     borderRadius: "50%",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backgroundColor: "rgba(0, 0, 0, )",
     border: "1px solid var(--border-light)",
     display: "flex",
     alignItems: "center",

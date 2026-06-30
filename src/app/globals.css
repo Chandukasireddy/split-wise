@@ -5,41 +5,41 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-brand: 'Outfit', system-ui, -apple-system, sans-serif;
 
-  /* Colors */
-  --background-raw: 15, 23, 42; /* #0f172a */
+  /* Colors - Light Natural Theme */
+  --background-raw: 248, 250, 252; /* #f8fafc slate-50 */
   --background: rgb(var(--background-raw));
-  --surface-raw: 30, 41, 59; /* #1e293b */
+  --surface-raw: 255, 255, 255; /* #ffffff */
   --surface: rgb(var(--surface-raw));
-  --surface-hover: rgb(51, 65, 85);
+  --surface-hover: rgb(241, 245, 249);
   
-  --primary-raw: 99, 102, 241; /* #6366f1 Indigo */
+  --primary-raw: 16, 185, 129; /* #10b981 Emerald Green */
   --primary: rgb(var(--primary-raw));
-  --primary-hover: rgb(79, 70, 229);
-  --primary-glow: rgba(99, 102, 241, 0.25);
+  --primary-hover: rgb(5, 150, 105);
+  --primary-glow: rgba(16, 185, 129, 0.15);
   
-  --secondary: rgb(139, 92, 246); /* Purple */
+  --secondary: rgb(59, 130, 246); /* Blue */
   
-  --owed-raw: 16, 185, 129; /* #10b981 Emerald (You are owed) */
+  --owed-raw: 16, 185, 129; /* #10b981 Emerald */
   --owed: rgb(var(--owed-raw));
   --owed-glow: rgba(16, 185, 129, 0.15);
   
-  --owes-raw: 244, 63, 94; /* #f43f5e Rose (You owe) */
+  --owes-raw: 239, 68, 68; /* #ef4444 Red */
   --owes: rgb(var(--owes-raw));
-  --owes-glow: rgba(244, 63, 94, 0.15);
+  --owes-glow: rgba(239, 68, 68, 0.15);
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #0f172a; /* slate-900 */
+  --text-secondary: #334155; /* slate-700 */
+  --text-muted: #64748b; /* slate-500 */
   
-  --border-light: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(99, 102, 241, 0.5);
+  --border-light: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(16, 185, 129, 0.4);
   
-  /* Glassmorphism */
-  --glass-bg: rgba(15, 23, 42, 0.5);
-  --glass-bg-card: rgba(30, 41, 59, 0.45);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-blur: blur(12px) saturate(180%);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  /* Glassmorphism - Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-card: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-blur: blur(16px) saturate(180%);
+  --glass-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05);
   
   /* Layout */
   --radius-sm: 8px;
@@ -59,9 +59,9 @@ html, body {
   min-height: 100vh;
   background-color: var(--background);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.95) 0px, var(--background) 100%);
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.95) 0px, var(--background) 100%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -118,13 +118,14 @@ p {
 .form-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: rgba(15, 23, 42, 0.6);
+  background: #ffffff;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 0.95rem;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .form-input:focus {

@@ -76,7 +76,7 @@ export default async function ActivitiesPage() {
               return (
                 <div key={log.id} style={{
                   ...styles.logItem,
-                  borderBottom: index === logs.length - 1 ? "none" : "1px solid rgba(255, 255, 255, 0.05)"
+                  borderBottom: index === logs.length - 1 ? "none" : "1px solid rgba(0, 0, 0, )"
                 }}>
                   <div style={styles.logLeft}>
                     <div style={styles.avatar}>

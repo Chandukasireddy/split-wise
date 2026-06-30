@@ -149,7 +149,7 @@ export default function NewGroupPage() {
               value={defaultCurrency}
               onChange={(e) => setDefaultCurrency(e.target.value)}
               className="form-input"
-              style={{ background: "#0f172a" }}
+              style={{ background: "#f8fafc" }}
               disabled={loading}
             >
               <option value="USD">USD ($)</option>
@@ -384,7 +384,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.75rem 1rem",
     background: "transparent",
     border: "none",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid rgba(0, 0, 0, )",
     cursor: "pointer",
     textAlign: "left",
     transition: "background 0.2s ease",
@@ -444,8 +444,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "0.75rem",
-    background: "rgba(255, 255, 255, 0.02)",
-    border: "1px solid rgba(255, 255, 255, 0.04)",
+    background: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     padding: "0.6rem 0.85rem",
     borderRadius: "10px",
   },

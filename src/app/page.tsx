@@ -167,7 +167,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: "72px",
     display: "flex",
     alignItems: "center",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid rgba(0, 0, 0, )",
   },
   headerContainer: {
     display: "flex",
@@ -297,7 +297,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "44px",
     height: "44px",
     borderRadius: "10px",
-    background: "rgba(255, 255, 255, 0.03)",
+    background: "rgba(0, 0, 0, )",
     border: "1px solid var(--border-light)",
     display: "flex",
     alignItems: "center",
@@ -317,7 +317,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: "64px",
     display: "flex",
     alignItems: "center",
-    borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+    borderTop: "1px solid rgba(0, 0, 0, )",
   },
   footerContainer: {
     display: "flex",

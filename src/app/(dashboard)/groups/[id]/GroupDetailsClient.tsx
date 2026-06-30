@@ -105,7 +105,7 @@ export default function GroupDetailsClient({
   const [expenseDesc, setExpenseDesc] = useState("");
   const [expenseAmt, setExpenseAmt] = useState("");
   const [expenseCategory, setExpenseCategory] = useState("General");
-  const [expenseCurrency, setExpenseCurrency] = useState("USD");
+  const [expenseCurrency, setExpenseCurrency] = useState(group.defaultCurrency);
   const [expensePayer, setExpensePayer] = useState(currentUser.userId);
   const [expenseSplitType, setExpenseSplitType] = useState<"EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES">("EQUAL");
   const [expenseConversionRate, setExpenseConversionRate] = useState("1.0");
@@ -581,8 +581,8 @@ export default function GroupDetailsClient({
                       type="button"
                       onClick={handleCopyInviteLink}
                       style={{
-                        background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
-                        border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(255, 255, 255, 0.1)",
+                        background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "rgba(0, 0, 0, )",
+                        border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(0, 0, 0, )",
                         color: inviteCopied ? "var(--owed)" : "var(--text-muted)",
                         padding: "0.25rem 0.5rem",
                         borderRadius: "0.375rem",
@@ -798,7 +798,7 @@ export default function GroupDetailsClient({
                       cy="110"
                       r="70"
                       fill="transparent"
-                      stroke="rgba(255, 255, 255, 0.05)"
+                      stroke="rgba(0, 0, 0, )"
                       strokeWidth="24"
                     />
                     
@@ -917,7 +917,7 @@ export default function GroupDetailsClient({
                     value={expenseCurrency}
                     onChange={(e) => setExpenseCurrency(e.target.value)}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -929,7 +929,7 @@ export default function GroupDetailsClient({
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value)}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
@@ -969,7 +969,7 @@ export default function GroupDetailsClient({
                     value={expensePayer}
                     onChange={(e) => setExpensePayer(e.target.value)}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -985,7 +985,7 @@ export default function GroupDetailsClient({
                     value={expenseSplitType}
                     onChange={(e) => setExpenseSplitType(e.target.value as "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES")}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     <option value="EQUAL">Equally</option>
                     <option value="UNEQUAL">Unequally (Exact amounts)</option>
@@ -1111,7 +1111,7 @@ export default function GroupDetailsClient({
                     value={settlePayer}
                     onChange={(e) => setSettlePayer(e.target.value)}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -1127,7 +1127,7 @@ export default function GroupDetailsClient({
                     value={settlePayee}
                     onChange={(e) => setSettlePayee(e.target.value)}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -1159,7 +1159,7 @@ export default function GroupDetailsClient({
                     value={settleCurrency}
                     onChange={(e) => setSettleCurrency(e.target.value)}
                     className="form-input"
-                    style={{ background: "#0f172a" }}
+                    style={{ background: "#f8fafc" }}
                   >
                     {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -1218,8 +1218,8 @@ export default function GroupDetailsClient({
                       top: "100%",
                       left: 0,
                       right: 0,
-                      background: "#0f172a",
-                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "#f8fafc",
+                      border: "1px solid rgba(0, 0, 0, )",
                       borderRadius: "0.375rem",
                       padding: "0.5rem",
                       fontSize: "0.85rem",
@@ -1236,8 +1236,8 @@ export default function GroupDetailsClient({
                       top: "100%",
                       left: 0,
                       right: 0,
-                      background: "#0f172a",
-                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "#f8fafc",
+                      border: "1px solid rgba(0, 0, 0, )",
                       borderRadius: "0.375rem",
                       maxHeight: "150px",
                       overflowY: "auto",
@@ -1256,9 +1256,9 @@ export default function GroupDetailsClient({
                             padding: "0.5rem",
                             cursor: "pointer",
                             fontSize: "0.85rem",
-                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                            borderBottom: "1px solid rgba(0, 0, 0, )",
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0, 0, 0, )"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                         >
                           <strong>{user.name}</strong> (@{user.username})
@@ -1388,7 +1388,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tabsMenu: {
     display: "flex",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+    borderBottom: "1px solid rgba(0, 0, 0, )",
     gap: "2rem",
   },
   tabBtn: {
@@ -1437,8 +1437,8 @@ const styles: Record<string, React.CSSProperties> = {
   expenseDateBadge: {
     width: "48px",
     height: "48px",
-    background: "rgba(255, 255, 255, 0.03)",
-    border: "1px solid rgba(255, 255, 255, 0.06)",
+    background: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     borderRadius: "10px",
     display: "flex",
     flexDirection: "column",
@@ -1517,7 +1517,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid rgba(0, 0, 0, )",
     paddingBottom: "0.75rem",
     marginBottom: "1rem",
   },
@@ -1540,8 +1540,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: "32px",
     height: "32px",
     borderRadius: "8px",
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
-    border: "1px solid rgba(255, 255, 255, 0.06)",
+    backgroundColor: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -1622,13 +1622,13 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "0.6rem 0",
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid rgba(0, 0, 0, )",
   },
   analyticsCard: {
     padding: "2rem",
   },
   analyticsHeader: {
-    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid rgba(0, 0, 0, )",
     paddingBottom: "1rem",
     marginBottom: "2rem",
   },
@@ -1679,8 +1679,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     padding: "0.5rem 0.75rem",
     borderRadius: "8px",
-    background: "rgba(255, 255, 255, 0.02)",
-    border: "1px solid rgba(255, 255, 255, 0.03)",
+    background: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
   },
   legendLeft: {
     display: "flex",
@@ -1770,8 +1770,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1rem",
   },
   splitBox: {
-    background: "rgba(255, 255, 255, 0.02)",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    background: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     borderRadius: "12px",
     padding: "1rem",
   },

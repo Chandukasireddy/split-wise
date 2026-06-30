@@ -162,8 +162,8 @@ const styles: Record<string, React.CSSProperties> = {
   desc: {
     fontSize: "0.9rem",
     color: "var(--text-muted)",
-    background: "rgba(255, 255, 255, 0.02)",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    background: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     padding: "0.75rem 1rem",
     borderRadius: "0.5rem",
     width: "100%",
@@ -172,8 +172,8 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
   },
   metaBox: {
-    background: "rgba(255, 255, 255, 0.02)",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
+    background: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     borderRadius: "0.5rem",
     width: "100%",
     padding: "1rem",

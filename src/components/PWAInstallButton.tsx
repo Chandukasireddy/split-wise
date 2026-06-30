@@ -101,7 +101,7 @@ export default function PWAInstallButton() {
         title="Download Application"
       >
         <Download size={15} color="var(--primary)" />
-        <span style={styles.btnText}>Get App</span>
+        <span style={styles.btnText}>Download</span>
       </button>
 
       {/* iOS Manual Install Modal */}
@@ -180,7 +180,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(3, 7, 18, 0.85)",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     backdropFilter: "blur(6px)",
     display: "flex",
     alignItems: "center",
@@ -250,8 +250,8 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.4,
   },
   highlightBadge: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, )",
     padding: "0.1rem 0.35rem",
     borderRadius: "4px",
     fontSize: "0.8rem",
