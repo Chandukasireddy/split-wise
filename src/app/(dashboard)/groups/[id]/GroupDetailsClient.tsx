@@ -77,7 +77,12 @@ interface GroupDetailsClientProps {
 }
 
 const CATEGORIES = ["Food", "Travel", "Utilities", "Entertainment", "General"];
-const CURRENCIES = ["USD", "EUR", "GBP", "INR"];
+const CURRENCIES = [
+  "EUR", "USD", "GBP", "INR", "PLN", "JPY", "CAD", "AUD", "CHF", "CNY",
+  "SEK", "NOK", "DKK", "BRL", "MXN", "SGD", "HKD", "KRW", "TRY", "ZAR",
+  "AED", "THB", "MYR", "IDR", "PHP", "CZK", "HUF", "RON", "BGN", "HRK",
+  "NZD", "PKR", "BDT", "VND", "EGP", "UAH", "NGN", "KES", "GHS", "ILS",
+];
 const CATEGORY_COLORS: Record<string, string> = {
   Food: "#10b981",          // Emerald
   Travel: "#10b981",        // Indigo
@@ -451,7 +456,7 @@ export default function GroupDetailsClient({
   }
 
   // Currency formatting helper
-  function formatCurrency(amount: number, currency: string = "USD") {
+  function formatCurrency(amount: number, currency: string = "EUR") {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
@@ -459,7 +464,7 @@ export default function GroupDetailsClient({
   }
 
   // Calculate Category-wise breakdown for active currency in tabs (defaults to USD or first available)
-  const activeCurrency = balances.currencies[0] || "USD";
+  const activeCurrency = balances.currencies[0] || "EUR";
   const categoryTotals: Record<string, number> = {};
   CATEGORIES.forEach((cat) => { categoryTotals[cat] = 0; });
   let totalSpentInCurrency = 0;

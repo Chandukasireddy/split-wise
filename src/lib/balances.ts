@@ -45,7 +45,7 @@ export async function getGroupCalculatedBalances(
   if (!group) return null;
 
   const members = group.members.map((m) => m.user);
-  const defaultCurrency = group.defaultCurrency || "USD";
+  const defaultCurrency = group.defaultCurrency || "EUR";
   const currencies = [defaultCurrency];
 
   const balancesByCurrency: Record<string, Record<string, MemberBalanceDetail>> = {};

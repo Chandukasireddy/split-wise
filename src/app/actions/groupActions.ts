@@ -64,7 +64,7 @@ export async function createGroup(
   name: string,
   description: string,
   memberIds: string[],
-  defaultCurrency: string = "USD"
+  defaultCurrency: string = "EUR"
 ): Promise<GroupActionResult> {
   const session = await getCurrentUser();
   if (!session) {
