@@ -48,23 +48,27 @@ SplitEasy is designed to run seamlessly on Vercel's serverless environment with 
 Get a free online PostgreSQL instance from one of the following:
 *   [Neon Database](https://neon.tech)
 *   [Supabase](https://supabase.com)
-*   [Vercel Postgres Storage](https://vercel.com/docs/storage/vercel-postgres)
+*   [Vercel Postgres Storage](https://vercel.com/docs/storage/vercel-postgres) (Built-in Neon Serverless Postgres)
 
-Copy the database connection string URL (e.g. `postgres://user:password@host/db?sslmode=require`).
-
-### Step 2: Swap Prisma Provider to PostgreSQL
-Open `prisma/schema.prisma` and change the database provider to `postgresql`:
+### Step 2: Swap Prisma Provider to Vercel Postgres
+Open `prisma/schema.prisma` and update your datasource config block:
 ```prisma
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 ```
 
 ### Step 3: Deploy to Vercel
 1.  Push your code to a GitHub repository.
 2.  Import the repository into your [Vercel Dashboard](https://vercel.com).
-3.  Add the following **Environment Variables**:
-    *   `DATABASE_URL`: Your copied PostgreSQL connection string.
+3.  Add the following **Environment Variable**:
     *   `JWT_SECRET`: A custom secure string used to sign sessions (e.g. `my-super-secret-random-key-change-this`).
-4.  Click **Deploy**! Vercel will build the application, configure your routing middleware proxies, and assign a free domain name (e.g. `spliteasy.vercel.app`).
+4.  Navigate to the **Storage** tab in your Vercel Project Dashboard.
+5.  Click **Create Database**, select **Postgres** (Neon Serverless), and click **Connect**. Vercel will automatically spin up the database and inject `POSTGRES_PRISMA_URL` and `POSTGRES_URL_NON_POOLING` into your environment settings.
+6.  Locally run:
+    ```bash
+    npx prisma db push
+    ```
+    This syncs the database tables directly on your Vercel cloud database. Vercel will automatically assign a free domain name (e.g., `spliteasy.vercel.app`)!
