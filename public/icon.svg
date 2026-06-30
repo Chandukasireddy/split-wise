@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Rounded Background -->
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  
+  <!-- Glowing Rings -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#6366f1" stroke-width="16" opacity="0.1"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#6366f1" stroke-width="8" opacity="0.2"/>
+  
+  <!-- Wallet Graphic (Indigo Primary Accent) -->
+  <g transform="translate(136, 136) scale(1.5)" stroke="#6366f1" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Wallet Body -->
+    <path d="M20 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z" stroke="#6366f1"/>
+    <!-- Fold line -->
+    <path d="M2 10h12" stroke="#6366f1" opacity="0.8"/>
+    <!-- Wallet Flap -->
+    <path d="M14 9h6v6h-6z" fill="#6366f1" stroke="#6366f1" stroke-width="2"/>
+    <!-- Wallet Button / Coin -->
+    <circle cx="17" cy="12" r="1.5" fill="#0f172a" stroke="#fff" stroke-width="1"/>
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+{
+  "name": "SplitEasy - Unlocked Shared Expenses",
+  "short_name": "SplitEasy",
+  "description": "Split bills, simplify group debts, and analyze spending balances for free.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
