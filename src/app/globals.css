@@ -35,8 +35,8 @@
   --border-focus: rgba(16, 185, 129, 0.4);
   
   /* Glassmorphism - Light Mode */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-bg-card: rgba(255, 255, 255, 0.85);
+  --glass-bg: rgba(0, 0, 0, 0.7);
+  --glass-bg-card: rgba(0, 0, 0, 0.85);
   --glass-border: rgba(0, 0, 0, 0.08);
   --glass-blur: blur(16px) saturate(180%);
   --glass-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05);
@@ -61,7 +61,7 @@ html, body {
   background-image: 
     radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.04) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.95) 0px, var(--background) 100%);
+    radial-gradient(at 50% 50%, rgba(0, 0, 0, 0.95) 0px, var(--background) 100%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -110,7 +110,7 @@ p {
 
 .glass-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(0, 0, 0, 0.15);
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
 }
 
@@ -176,13 +176,13 @@ p {
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.08);
   border: 1px solid var(--border-light);
   color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
 
@@ -339,6 +339,29 @@ p {
 
 .bottom-nav-center span {
   margin-top: 2px;
+}
+
+/* Responsive Typography - Mobile-First Overrides */
+.page-title {
+  font-size: 1.75rem !important;
+}
+.balance-value {
+  font-size: 1.35rem !important;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 1.25rem !important;
+  }
+  .balance-value {
+    font-size: 1.1rem !important;
+  }
+  .profile-username {
+    max-width: 75px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 

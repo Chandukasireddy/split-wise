@@ -33,7 +33,7 @@ export default async function DashboardLayout({
         <div className="container" style={styles.navContainer}>
           <Link href="/dashboard" style={styles.brand}>
             <div style={styles.logoBadge}>
-              <Wallet size={20} color="#6366f1" />
+              <Wallet size={20} color="#10b981" />
             </div>
             <span style={styles.brandText}>SplitEasy</span>
           </Link>
@@ -52,11 +52,11 @@ export default async function DashboardLayout({
           <div style={styles.userSection}>
             <PWAInstallButton />
 
-            <div className="desktop-only" style={styles.profileBadge}>
+            <div style={styles.profileBadge}>
               <span style={styles.avatar}>
                 {displayName.charAt(0).toUpperCase()}
               </span>
-              <span style={styles.userName}>{displayName}</span>
+              <span className="profile-username" style={styles.userName}>{displayName}</span>
             </div>
 
             <form action={handleLogout} className="desktop-only">
@@ -108,7 +108,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
   },
   navbar: {
-    background: "rgba(15, 23, 42, 0.6)",
+    background: "var(--surface)",
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
     borderBottom: "1px solid rgba(0, 0, 0, )",
@@ -132,10 +132,10 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
   },
   logoBadge: {
-    background: "rgba(99, 102, 241, 0.15)",
+    background: "rgba(16, 185, 129, 0.15)",
     padding: "0.35rem",
     borderRadius: "8px",
-    border: "1px solid rgba(99, 102, 241, 0.25)",
+    border: "1px solid rgba(16, 185, 129, 0.25)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

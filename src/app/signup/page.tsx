@@ -32,7 +32,7 @@ export default function SignupPage() {
     <div style={styles.pageContainer}>
       <div style={styles.brandContainer}>
         <div style={styles.logoBadge}>
-          <Wallet size={28} color="#6366f1" />
+          <Wallet size={28} color="#10b981" />
         </div>
         <span style={styles.brandName}>SplitEasy</span>
       </div>
@@ -137,10 +137,10 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: "2rem",
   },
   logoBadge: {
-    background: "rgba(99, 102, 241, 0.15)",
+    background: "rgba(16, 185, 129, 0.15)",
     padding: "0.5rem",
     borderRadius: "12px",
-    border: "1px solid rgba(99, 102, 241, 0.25)",
+    border: "1px solid rgba(16, 185, 129, 0.25)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

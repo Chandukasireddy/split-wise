@@ -63,7 +63,7 @@ export default async function DashboardPage() {
       {/* Welcome Header */}
       <div style={styles.welcomeHeader}>
         <div>
-          <h1 style={styles.welcomeTitle}>Dashboard</h1>
+          <h1 className="page-title" style={styles.welcomeTitle}>Dashboard</h1>
           <p style={styles.welcomeSubtitle}>Keep track of shared expenses, simplified debts, and settlements.</p>
         </div>
         <Link href="/groups/new" className="btn btn-primary" style={styles.createBtn}>
@@ -84,12 +84,12 @@ export default async function DashboardPage() {
             <div style={styles.balanceAmounts}>
               {hasOwed ? (
                 Object.entries(overall.totalOwed).map(([curr, amt]) => (
-                  <div key={curr} style={{ color: "var(--owed)", fontWeight: 700, fontSize: "1.5rem" }}>
+                  <div key={curr} className="balance-value" style={{ color: "var(--owed)", fontWeight: 700 }}>
                     {formatCurrency(amt, curr)}
                   </div>
                 ))
               ) : (
-                <div style={styles.neutralBalance}>$0.00</div>
+                <div className="balance-value" style={{ color: "var(--text-secondary)", fontWeight: 700 }}>$0.00</div>
               )}
             </div>
           </div>
@@ -105,19 +105,19 @@ export default async function DashboardPage() {
             <div style={styles.balanceAmounts}>
               {hasOwes ? (
                 Object.entries(overall.totalOwes).map(([curr, amt]) => (
-                  <div key={curr} style={{ color: "var(--owes)", fontWeight: 700, fontSize: "1.5rem" }}>
+                  <div key={curr} className="balance-value" style={{ color: "var(--owes)", fontWeight: 700 }}>
                     {formatCurrency(amt, curr)}
                   </div>
                 ))
               ) : (
-                <div style={styles.neutralBalance}>$0.00</div>
+                <div className="balance-value" style={{ color: "var(--text-secondary)", fontWeight: 700 }}>$0.00</div>
               )}
             </div>
           </div>
         </div>
 
         {/* Net Balance Summary */}
-        <div className="glass-card" style={{ ...styles.balanceCard, background: "linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)" }}>
+        <div className="glass-card" style={{ ...styles.balanceCard, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%)" }}>
           <div style={styles.balanceIconContainerNet}>
             <Sparkles size={24} color="var(--primary)" />
           </div>
@@ -130,13 +130,13 @@ export default async function DashboardPage() {
                   const isOwes = amt < 0;
                   const color = isOwed ? "var(--owed)" : isOwes ? "var(--owes)" : "var(--text-secondary)";
                   return (
-                    <div key={curr} style={{ color, fontWeight: 700, fontSize: "1.5rem" }}>
+                    <div key={curr} className="balance-value" style={{ color, fontWeight: 700 }}>
                       {amt === 0 ? "$0.00 (Settled)" : formatCurrency(amt, curr)}
                     </div>
                   );
                 })
               ) : (
-                <div style={styles.neutralBalance}>$0.00 (Settled)</div>
+                <div className="balance-value" style={{ color: "var(--text-secondary)", fontWeight: 700 }}>$0.00 (Settled)</div>
               )}
             </div>
           </div>
@@ -292,7 +292,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1rem",
   },
   welcomeTitle: {
-    fontSize: "2.25rem",
+    fontSize: "1.25rem",
     fontWeight: 800,
     color: "var(--text-primary)",
   },
@@ -329,10 +329,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(244, 63, 94, 0.2)",
   },
   balanceIconContainerNet: {
-    background: "rgba(99, 102, 241, 0.15)",
+    background: "rgba(16, 185, 129, 0.15)",
     padding: "0.75rem",
     borderRadius: "12px",
-    border: "1px solid rgba(99, 102, 241, 0.25)",
+    border: "1px solid rgba(16, 185, 129, 0.25)",
   },
   balanceLabel: {
     fontSize: "0.85rem",
@@ -351,7 +351,7 @@ const styles: Record<string, React.CSSProperties> = {
   neutralBalance: {
     color: "var(--text-secondary)",
     fontWeight: 700,
-    fontSize: "1.5rem",
+    fontSize: "1.25rem",
   },
   mainGrid: {
     display: "grid",
@@ -429,7 +429,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     fontSize: "1.25rem",
     color: "#fff",
-    boxShadow: "0 4px 10px rgba(99, 102, 241, 0.2)",
+    boxShadow: "0 4px 10px rgba(16, 185, 129, 0.2)",
   },
   groupName: {
     fontSize: "1.05rem",

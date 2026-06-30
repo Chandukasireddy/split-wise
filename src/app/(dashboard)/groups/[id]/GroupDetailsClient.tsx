@@ -79,7 +79,7 @@ const CATEGORIES = ["Food", "Travel", "Utilities", "Entertainment", "General"];
 const CURRENCIES = ["USD", "EUR", "GBP", "INR"];
 const CATEGORY_COLORS: Record<string, string> = {
   Food: "#10b981",          // Emerald
-  Travel: "#6366f1",        // Indigo
+  Travel: "#10b981",        // Indigo
   Utilities: "#06b6d4",     // Cyan
   Entertainment: "#f43f5e",  // Rose
   General: "#f59e0b",       // Amber
@@ -406,7 +406,7 @@ export default function GroupDetailsClient({
 
       <div style={styles.groupHero} className="glass-card">
         <div>
-          <h1 style={styles.groupHeroName}>{group.name}</h1>
+          <h1 className="page-title" style={styles.groupHeroName}>{group.name}</h1>
           <p style={styles.groupHeroDesc}>{group.description || "No description provided."}</p>
         </div>
 
@@ -602,8 +602,8 @@ export default function GroupDetailsClient({
                       type="button"
                       onClick={() => setShowAddMemberModal(true)}
                       style={{
-                        background: "rgba(99, 102, 241, 0.15)",
-                        border: "1px solid rgba(99, 102, 241, 0.3)",
+                        background: "rgba(16, 185, 129, 0.15)",
+                        border: "1px solid rgba(16, 185, 129, 0.3)",
                         color: "var(--primary)",
                         padding: "0.25rem 0.5rem",
                         borderRadius: "0.375rem",
@@ -616,10 +616,10 @@ export default function GroupDetailsClient({
                         transition: "all 0.2s ease"
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "rgba(99, 102, 241, 0.25)";
+                        e.currentTarget.style.background = "rgba(16, 185, 129, 0.25)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "rgba(99, 102, 241, 0.15)";
+                        e.currentTarget.style.background = "rgba(16, 185, 129, 0.15)";
                       }}
                     >
                       <PlusCircle size={12} />
@@ -776,7 +776,7 @@ export default function GroupDetailsClient({
           <div className="glass-card animate-fade-in" style={styles.analyticsCard}>
             <div style={styles.analyticsHeader}>
               <div>
-                <h2 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Group Spend Analytics</h2>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 700 }}>Group Spend Analytics</h2>
                 <p style={{ fontSize: "0.9rem" }}>Breakdown of expenses by categories in {activeCurrency}.</p>
               </div>
             </div>
@@ -1277,8 +1277,8 @@ export default function GroupDetailsClient({
                       <div
                         key={m.id}
                         style={{
-                          background: "rgba(99, 102, 241, 0.15)",
-                          border: "1px solid rgba(99, 102, 241, 0.3)",
+                          background: "rgba(16, 185, 129, 0.15)",
+                          border: "1px solid rgba(16, 185, 129, 0.3)",
                           color: "var(--primary)",
                           padding: "0.25rem 0.5rem",
                           borderRadius: "9999px",
@@ -1371,7 +1371,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "2rem",
   },
   groupHeroName: {
-    fontSize: "2.25rem",
+    fontSize: "1.25rem",
     fontWeight: 800,
     color: "var(--text-primary)",
   },
@@ -1562,7 +1562,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "flex-end",
   },
   sectionHeaderTitle: {
-    fontSize: "1.5rem",
+    fontSize: "1.25rem",
     fontWeight: 700,
     marginBottom: "0.25rem",
   },
@@ -1741,7 +1741,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
   },
   modalTitle: {
-    fontSize: "1.5rem",
+    fontSize: "1.25rem",
     fontWeight: 700,
   },
   modalCloseBtn: {

@@ -124,16 +124,16 @@ export default function PWAInstallButton() {
 
   return (
     <>
-      {/* Desktop Header Install Button */}
-      {!isMobile && isInstallable && (
+      {/* Header Install Button (Icon-only on mobile, text on desktop) */}
+      {isInstallable && (
         <button
           onClick={handleInstallClick}
-          style={styles.installBtn}
+          style={isMobile ? styles.installBtnMobile : styles.installBtn}
           className="btn btn-secondary"
           title="Download Application"
         >
           <Download size={15} color="var(--primary)" />
-          <span style={styles.btnText}>Download</span>
+          {!isMobile && <span style={styles.btnText}>Download</span>}
         </button>
       )}
 
@@ -224,8 +224,20 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.4rem 0.8rem",
     fontSize: "0.85rem",
     gap: "0.4rem",
-    borderColor: "rgba(99, 102, 241, 0.3)",
-    background: "rgba(99, 102, 241, 0.05)",
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    background: "rgba(16, 185, 129, 0.05)",
+  },
+  installBtnMobile: {
+    padding: "0.4rem",
+    borderRadius: "50%",
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    background: "rgba(16, 185, 129, 0.05)",
+    cursor: "pointer",
   },
   btnText: {
     // Hidden on small screens, shown on desktop via responsive rules if needed
@@ -236,7 +248,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     backdropFilter: "blur(6px)",
     display: "flex",
     alignItems: "center",
@@ -290,8 +302,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: "24px",
     height: "24px",
     borderRadius: "50%",
-    backgroundColor: "rgba(99, 102, 241, 0.15)",
-    border: "1px solid rgba(99, 102, 241, 0.3)",
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    border: "1px solid rgba(16, 185, 129, 0.3)",
     color: "var(--primary)",
     display: "flex",
     alignItems: "center",

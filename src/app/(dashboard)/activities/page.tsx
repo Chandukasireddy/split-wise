@@ -42,7 +42,7 @@ export default async function ActivitiesPage() {
       </Link>
 
       <div style={styles.header}>
-        <h1 style={styles.title}>
+        <h1 className="page-title" style={styles.title}>
           <Activity size={28} color="var(--primary)" style={{ flexShrink: 0 }} />
           Activity Log
         </h1>
@@ -128,7 +128,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "0.25rem",
   },
   title: {
-    fontSize: "2.25rem",
+    fontSize: "1.25rem",
     fontWeight: 800,
     display: "flex",
     alignItems: "center",
@@ -169,8 +169,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: "36px",
     height: "36px",
     borderRadius: "50%",
-    backgroundColor: "rgba(99, 102, 241, 0.1)",
-    border: "1px solid rgba(99, 102, 241, 0.2)",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    border: "1px solid rgba(16, 185, 129, 0.2)",
     color: "var(--primary)",
     display: "flex",
     alignItems: "center",

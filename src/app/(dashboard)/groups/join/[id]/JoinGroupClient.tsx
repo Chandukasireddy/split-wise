@@ -129,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1.5rem",
   },
   iconContainer: {
-    background: "rgba(99, 102, 241, 0.1)",
+    background: "rgba(16, 185, 129, 0.1)",
     padding: "1rem",
     borderRadius: "50%",
     display: "flex",
@@ -137,8 +137,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
   },
   badge: {
-    background: "rgba(99, 102, 241, 0.15)",
-    border: "1px solid rgba(99, 102, 241, 0.3)",
+    background: "rgba(16, 185, 129, 0.15)",
+    border: "1px solid rgba(16, 185, 129, 0.3)",
     color: "var(--primary)",
     padding: "0.25rem 0.75rem",
     borderRadius: "9999px",
