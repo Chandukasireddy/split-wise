@@ -84,7 +84,6 @@ export default function NewGroupPage() {
 
     if (result.success && result.groupId) {
       router.push(`/groups/${result.groupId}`);
-      router.refresh();
     } else {
       setError(result.error || "Failed to create group.");
       setLoading(false);
