@@ -22,7 +22,7 @@ export default async function LandingPage() {
         <div className="container" style={styles.headerContainer}>
           <div style={styles.logoRow}>
             <div style={styles.logoBadge}>
-              <Wallet size={22} color="#10b981" />
+              <Wallet size={22} color="#e5a93b" />
             </div>
             <span style={styles.logoText}>SplitEasy</span>
           </div>
@@ -180,10 +180,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "0.5rem",
   },
   logoBadge: {
-    background: "rgba(16, 185, 129, 0.15)",
+    background: "rgba(229, 169, 59, 0.15)",
     padding: "0.4rem",
     borderRadius: "8px",
-    border: "1px solid rgba(16, 185, 129, 0.25)",
+    border: "1px solid rgba(229, 169, 59, 0.25)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -224,7 +224,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "0.5rem",
     background: "var(--primary-glow)",
-    border: "1px solid rgba(16, 185, 129, 0.3)",
+    border: "1px solid rgba(229, 169, 59, 0.3)",
     color: "rgba(165, 180, 252, 0.9)",
     fontSize: "0.8rem",
     fontWeight: 600,

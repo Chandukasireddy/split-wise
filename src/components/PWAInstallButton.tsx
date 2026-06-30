@@ -14,6 +14,7 @@ export default function PWAInstallButton() {
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+
   const [showBanner, setShowBanner] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -224,8 +225,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.4rem 0.8rem",
     fontSize: "0.85rem",
     gap: "0.4rem",
-    borderColor: "rgba(16, 185, 129, 0.3)",
-    background: "rgba(16, 185, 129, 0.05)",
+    borderColor: "rgba(229, 169, 59, 0.3)",
+    background: "rgba(229, 169, 59, 0.05)",
   },
   installBtnMobile: {
     padding: "0.4rem",
@@ -235,8 +236,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    borderColor: "rgba(16, 185, 129, 0.3)",
-    background: "rgba(16, 185, 129, 0.05)",
+    borderColor: "rgba(229, 169, 59, 0.3)",
+    background: "rgba(229, 169, 59, 0.05)",
     cursor: "pointer",
   },
   btnText: {
@@ -302,8 +303,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: "24px",
     height: "24px",
     borderRadius: "50%",
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    border: "1px solid rgba(16, 185, 129, 0.3)",
+    backgroundColor: "rgba(229, 169, 59, 0.15)",
+    border: "1px solid rgba(229, 169, 59, 0.3)",
     color: "var(--primary)",
     display: "flex",
     alignItems: "center",
@@ -347,7 +348,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "0.75rem",
   },
   bannerIconBadge: {
-    background: "rgba(16, 185, 129, 0.1)",
+    background: "rgba(229, 169, 59, 0.1)",
     padding: "0.5rem",
     borderRadius: "10px",
     display: "flex",

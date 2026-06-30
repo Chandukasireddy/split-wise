@@ -3,8 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getAuthenticatedUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/authActions";
-import { Wallet, LayoutDashboard, Activity, LogOut, Plus } from "lucide-react";
+import { Wallet, LayoutDashboard, Activity, Users, LogOut } from "lucide-react";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import BottomNav from "@/components/BottomNav";
 
 export default async function DashboardLayout({
   children,
@@ -12,7 +13,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await getCurrentUser();
-  
+
   if (!session) {
     redirect("/login");
   }
@@ -33,15 +34,20 @@ export default async function DashboardLayout({
         <div className="container" style={styles.navContainer}>
           <Link href="/dashboard" style={styles.brand}>
             <div style={styles.logoBadge}>
-              <Wallet size={20} color="#10b981" />
+              <Wallet size={20} color="#e5a93b" />
             </div>
             <span style={styles.brandText}>SplitEasy</span>
           </Link>
 
+          {/* Desktop Navigation Links */}
           <div className="desktop-only" style={styles.navLinks}>
             <Link href="/dashboard" style={styles.navLink}>
               <LayoutDashboard size={18} />
               <span>Dashboard</span>
+            </Link>
+            <Link href="/friends" style={styles.navLink}>
+              <Users size={18} />
+              <span>Friends</span>
             </Link>
             <Link href="/activities" style={styles.navLink}>
               <Activity size={18} />
@@ -49,14 +55,17 @@ export default async function DashboardLayout({
             </Link>
           </div>
 
+          {/* Right-side: PWA button + Profile + Desktop Logout */}
           <div style={styles.userSection}>
             <PWAInstallButton />
 
-            <div style={styles.profileBadge}>
+            <div className="desktop-only" style={styles.profileBadge}>
               <span style={styles.avatar}>
                 {displayName.charAt(0).toUpperCase()}
               </span>
-              <span className="profile-username" style={styles.userName}>{displayName}</span>
+              <span className="profile-username" style={styles.userName}>
+                {displayName}
+              </span>
             </div>
 
             <form action={handleLogout} className="desktop-only">
@@ -74,29 +83,8 @@ export default async function DashboardLayout({
         {children}
       </main>
 
-      {/* Bottom Nav Bar for Mobile Devices */}
-      <nav className="bottom-nav">
-        <Link href="/dashboard" className="bottom-nav-link">
-          <LayoutDashboard size={20} />
-          <span>Dashboard</span>
-        </Link>
-        <Link href="/groups/new" className="bottom-nav-link bottom-nav-center">
-          <div className="bottom-nav-plus">
-            <Plus size={24} color="#fff" />
-          </div>
-          <span>New Group</span>
-        </Link>
-        <Link href="/activities" className="bottom-nav-link">
-          <Activity size={20} />
-          <span>Activity</span>
-        </Link>
-        <form action={handleLogout} style={{ display: "contents" }}>
-          <button type="submit" className="bottom-nav-btn">
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
-        </form>
-      </nav>
+      {/* Mobile Bottom Nav (Client Component — handles Profile popup + logout) */}
+      <BottomNav displayName={displayName} />
     </div>
   );
 }
@@ -111,7 +99,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "var(--surface)",
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
-    borderBottom: "1px solid rgba(0, 0, 0, )",
+    borderBottom: "1px solid rgba(0, 0, 0, 0.07)",
     position: "sticky",
     top: 0,
     zIndex: 100,
@@ -132,10 +120,10 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
   },
   logoBadge: {
-    background: "rgba(16, 185, 129, 0.15)",
+    background: "rgba(229, 169, 59, 0.15)",
     padding: "0.35rem",
     borderRadius: "8px",
-    border: "1px solid rgba(16, 185, 129, 0.25)",
+    border: "1px solid rgba(229, 169, 59, 0.25)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -150,32 +138,33 @@ const styles: Record<string, React.CSSProperties> = {
   navLinks: {
     display: "flex",
     alignItems: "center",
-    gap: "1.5rem",
+    gap: "0.25rem",
   },
   navLink: {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
     color: "var(--text-secondary)",
-    fontSize: "0.95rem",
+    fontSize: "0.9rem",
     fontWeight: 500,
     padding: "0.5rem 0.75rem",
     borderRadius: "8px",
     transition: "all 0.2s ease",
+    textDecoration: "none",
   },
   userSection: {
     display: "flex",
     alignItems: "center",
-    gap: "1rem",
+    gap: "0.75rem",
   },
   profileBadge: {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
-    background: "rgba(0, 0, 0, )",
+    background: "rgba(0, 0, 0, 0.04)",
     padding: "0.35rem 0.75rem",
     borderRadius: "20px",
-    border: "1px solid rgba(0, 0, 0, )",
+    border: "1px solid rgba(0, 0, 0, 0.07)",
   },
   avatar: {
     width: "24px",
@@ -199,13 +188,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.85rem",
     gap: "0.4rem",
   },
-  logoutText: {
-    // Hidden on very small screens, shown otherwise
-  },
+  logoutText: {},
   mainContent: {
     flex: 1,
     paddingTop: "2rem",
-    paddingBottom: "4rem",
+    paddingBottom: "5rem",
     display: "flex",
     flexDirection: "column",
     gap: "2rem",
