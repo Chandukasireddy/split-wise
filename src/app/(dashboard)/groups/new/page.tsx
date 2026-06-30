@@ -16,6 +16,7 @@ export default function NewGroupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [defaultCurrency, setDefaultCurrency] = useState("USD");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [addedMembers, setAddedMembers] = useState<Member[]>([]);
@@ -74,7 +75,7 @@ export default function NewGroupPage() {
     setError(null);
 
     const memberIds = addedMembers.map((m) => m.id);
-    const result = await createGroup(name, description, memberIds);
+    const result = await createGroup(name, description, memberIds, defaultCurrency);
 
     if (result.success && result.groupId) {
       router.push(`/groups/${result.groupId}`);
@@ -132,6 +133,25 @@ export default function NewGroupPage() {
               style={{ minHeight: "80px", resize: "vertical" }}
               disabled={loading}
             />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label htmlFor="groupCurrency" className="form-label">
+              Default Group Currency *
+            </label>
+            <select
+              id="groupCurrency"
+              value={defaultCurrency}
+              onChange={(e) => setDefaultCurrency(e.target.value)}
+              className="form-input"
+              style={{ background: "#0f172a" }}
+              disabled={loading}
+            >
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="INR">INR (₹)</option>
+            </select>
           </div>
 
           <button

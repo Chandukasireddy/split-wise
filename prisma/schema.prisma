@@ -29,6 +29,7 @@ model Group {
   id           String        @id @default(uuid())
   name         String
   description  String?
+  defaultCurrency String        @default("USD")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   
@@ -71,6 +72,8 @@ model Expense {
   
   splitType   String         @default("EQUAL") // EQUAL, UNEQUAL, PERCENTAGE, SHARES
   createdById String
+  conversionRate  Float      @default(1.0)
+  convertedAmount Float      @default(0.0)
   
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt

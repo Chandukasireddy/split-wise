@@ -47,6 +47,8 @@ interface Expense {
   date: Date;
   payerId: string;
   splitType: string;
+  conversionRate: number;
+  convertedAmount: number;
   splits: Split[];
 }
 
@@ -65,6 +67,7 @@ interface GroupDetailsClientProps {
     id: string;
     name: string;
     description: string | null;
+    defaultCurrency: string;
     members: { user: Member }[];
     expenses: Expense[];
     payments: Payment[];
@@ -105,6 +108,7 @@ export default function GroupDetailsClient({
   const [expenseCurrency, setExpenseCurrency] = useState("USD");
   const [expensePayer, setExpensePayer] = useState(currentUser.userId);
   const [expenseSplitType, setExpenseSplitType] = useState<"EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES">("EQUAL");
+  const [expenseConversionRate, setExpenseConversionRate] = useState("1.0");
   
   // Custom split values: mapped by userId -> value (can be amount, percent, or shares)
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
@@ -113,7 +117,7 @@ export default function GroupDetailsClient({
   const [settlePayer, setSettlePayer] = useState("");
   const [settlePayee, setSettlePayee] = useState("");
   const [settleAmt, setSettleAmt] = useState("");
-  const [settleCurrency, setSettleCurrency] = useState("USD");
+  const [settleCurrency, setSettleCurrency] = useState(group.defaultCurrency);
 
   const members = group.members.map((m) => m.user);
 
@@ -174,6 +178,8 @@ export default function GroupDetailsClient({
         };
       });
 
+    const conversionRate = expenseCurrency === group.defaultCurrency ? 1.0 : (parseFloat(expenseConversionRate) || 1.0);
+
     const res = await addExpense(
       expenseDesc,
       amount,
@@ -182,7 +188,8 @@ export default function GroupDetailsClient({
       group.id,
       expensePayer,
       expenseSplitType,
-      splitsPayload
+      splitsPayload,
+      conversionRate
     );
 
     if (res.success) {
@@ -190,6 +197,7 @@ export default function GroupDetailsClient({
       setExpenseDesc("");
       setExpenseAmt("");
       setExpenseCategory("General");
+      setExpenseConversionRate("1.0");
       router.refresh();
     } else {
       setFormError(res.error || "Failed to add expense.");
@@ -437,6 +445,11 @@ export default function GroupDetailsClient({
                           <span style={styles.expenseTotalLabel}>Amount</span>
                           <span style={styles.expenseTotalValue}>
                             {formatCurrency(expense.amount, expense.currency)}
+                            {expense.conversionRate !== 1.0 && (
+                              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                                ({formatCurrency(expense.convertedAmount, group.defaultCurrency)})
+                              </div>
+                            )}
                           </span>
                         </div>
 
@@ -446,14 +459,14 @@ export default function GroupDetailsClient({
                               <>
                                 <span style={{ ...styles.expenseTotalLabel, color: "var(--owed)" }}>you lent</span>
                                 <span style={{ ...styles.expenseTotalValue, color: "var(--owed)" }}>
-                                  {formatCurrency(expense.amount - mySplit.amount, expense.currency)}
+                                  {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
                                 </span>
                               </>
                             ) : (
                               <>
                                 <span style={{ ...styles.expenseTotalLabel, color: "var(--owes)" }}>you owe</span>
                                 <span style={{ ...styles.expenseTotalValue, color: "var(--owes)" }}>
-                                  {formatCurrency(mySplit.amount, expense.currency)}
+                                  {formatCurrency(mySplit.amount, group.defaultCurrency)}
                                 </span>
                               </>
                             )
@@ -791,6 +804,31 @@ export default function GroupDetailsClient({
                   </select>
                 </div>
               </div>
+
+              {expenseCurrency !== group.defaultCurrency && (
+                <div style={styles.modalFormRow}>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="expConvRate" className="form-label">
+                      Conversion Rate ({expenseCurrency} to {group.defaultCurrency}) *
+                    </label>
+                    <input
+                      id="expConvRate"
+                      type="number"
+                      step="0.000001"
+                      required
+                      placeholder="e.g. 1.08"
+                      value={expenseConversionRate}
+                      onChange={(e) => setExpenseConversionRate(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div style={{ flex: 1, display: "flex", alignItems: "flex-end", paddingBottom: "0.5rem" }}>
+                    <div style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: 600 }}>
+                      Converted: {expenseAmt || "0"} {expenseCurrency} = {parseFloat((parseFloat(expenseAmt || "0") * parseFloat(expenseConversionRate || "1")).toFixed(2))} {group.defaultCurrency}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={styles.modalFormRow}>
                 <div style={{ flex: 1 }}>

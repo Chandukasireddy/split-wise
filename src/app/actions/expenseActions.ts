@@ -26,7 +26,8 @@ export async function addExpense(
   groupId: string,
   payerId: string,
   splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
-  splits: SplitInput[]
+  splits: SplitInput[],
+  conversionRate: number = 1.0
 ): Promise<ExpenseActionResult> {
   const session = await getCurrentUser();
   if (!session) {
@@ -68,15 +69,18 @@ export async function addExpense(
       return { success: false, error: "Selected payer is not in the group." };
     }
 
+    // Calculate converted total amount in the group's default currency
+    const convertedAmount = parseFloat((amount * conversionRate).toFixed(2));
+
     // Process splits based on type and calculate exact amounts
     let calculatedSplits: { userId: string; amount: number; percentage?: number; shares?: number }[] = [];
     let sumCalculated = 0;
 
     if (splitType === "EQUAL") {
-      // Split amount equally
+      // Split converted amount equally
       const shareCount = splits.length;
-      const baseShare = Math.floor((amount / shareCount) * 100) / 100;
-      let remainder = parseFloat((amount - baseShare * shareCount).toFixed(2));
+      const baseShare = Math.floor((convertedAmount / shareCount) * 100) / 100;
+      let remainder = parseFloat((convertedAmount - baseShare * shareCount).toFixed(2));
 
       calculatedSplits = splits.map((s, idx) => {
         // Distribute remainder (cents) to the first few users to avoid rounding errors
@@ -96,27 +100,35 @@ export async function addExpense(
       });
     } 
     else if (splitType === "UNEQUAL") {
-      // Verifying sum of unequal splits
+      // Verifying sum of unequal splits in original currency
       let totalProvided = 0;
-      calculatedSplits = splits.map((s) => {
-        const val = s.amount || 0;
-        totalProvided += val;
-        
-        const roundedVal = parseFloat(val.toFixed(2));
-        sumCalculated += roundedVal;
-        
-        return {
-          userId: s.userId,
-          amount: roundedVal,
-        };
-      });
+      splits.forEach((s) => { totalProvided += s.amount || 0; });
 
       if (Math.abs(totalProvided - amount) > 0.01) {
         return { 
           success: false, 
-          error: `Sum of splits (${totalProvided.toFixed(2)}) must equal total amount (${amount.toFixed(2)}).` 
+          error: `Sum of splits (${totalProvided.toFixed(2)}) must equal total amount (${amount.toFixed(2)}) in original currency.` 
         };
       }
+
+      // Convert unequal splits to default currency
+      let remainder = convertedAmount;
+      calculatedSplits = splits.map((s, idx) => {
+        const val = s.amount || 0;
+        let convertedSplitVal = Math.floor((val * conversionRate) * 100) / 100;
+        remainder = parseFloat((remainder - convertedSplitVal).toFixed(2));
+
+        // Assign remainder to the last item
+        if (idx === splits.length - 1) {
+          convertedSplitVal = parseFloat((convertedSplitVal + remainder).toFixed(2));
+        }
+
+        sumCalculated += convertedSplitVal;
+        return {
+          userId: s.userId,
+          amount: convertedSplitVal,
+        };
+      });
     } 
     else if (splitType === "PERCENTAGE") {
       // Splits by percentage
@@ -127,11 +139,11 @@ export async function addExpense(
         return { success: false, error: `Sum of percentages must equal 100% (currently ${totalPercent}%).` };
       }
 
-      let remainder = amount;
+      let remainder = convertedAmount;
       
       calculatedSplits = splits.map((s, idx) => {
         const percent = s.percentage || 0;
-        let userAmount = Math.floor((amount * (percent / 100)) * 100) / 100;
+        let userAmount = Math.floor((convertedAmount * (percent / 100)) * 100) / 100;
         
         remainder = parseFloat((remainder - userAmount).toFixed(2));
 
@@ -158,11 +170,11 @@ export async function addExpense(
         return { success: false, error: "Total shares must be greater than 0." };
       }
 
-      let remainder = amount;
+      let remainder = convertedAmount;
       
       calculatedSplits = splits.map((s, idx) => {
         const userShares = s.shares || 0;
-        let userAmount = Math.floor((amount * (userShares / totalShares)) * 100) / 100;
+        let userAmount = Math.floor((convertedAmount * (userShares / totalShares)) * 100) / 100;
         
         remainder = parseFloat((remainder - userAmount).toFixed(2));
 
@@ -180,9 +192,9 @@ export async function addExpense(
       });
     }
 
-    // Double check sum calculated matches original amount
-    if (Math.abs(sumCalculated - amount) > 0.02) {
-      return { success: false, error: "Calculation mismatch: split sums do not equal total amount." };
+    // Double check sum calculated matches converted amount
+    if (Math.abs(sumCalculated - convertedAmount) > 0.02) {
+      return { success: false, error: "Calculation mismatch: split sums do not equal converted total." };
     }
 
     // Perform database writes in a transaction
@@ -197,6 +209,8 @@ export async function addExpense(
           groupId,
           payerId,
           splitType,
+          conversionRate,
+          convertedAmount,
           createdById: session.userId,
         },
       });
@@ -219,11 +233,13 @@ export async function addExpense(
       });
 
       // 3. Log Activity
+      const displayAmt = `${currency} ${amount.toFixed(2)}`;
+      const convLogText = conversionRate !== 1.0 ? ` (converted: ${group.defaultCurrency} ${convertedAmount.toFixed(2)})` : "";
       await tx.activityLog.create({
         data: {
           userId: session.userId,
           groupId,
-          description: `added "${trimmedDesc}" for ${currency} ${amount.toFixed(2)} (paid by ${payerUser?.name || "Member"})`,
+          description: `added "${trimmedDesc}" for ${displayAmt}${convLogText} (paid by ${payerUser?.name || "Member"})`,
         },
       });
     });

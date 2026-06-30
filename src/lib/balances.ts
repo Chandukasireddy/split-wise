@@ -45,80 +45,71 @@ export async function getGroupCalculatedBalances(
   if (!group) return null;
 
   const members = group.members.map((m) => m.user);
-  
-  // Find all unique currencies in expenses & payments
-  const currencySet = new Set<string>();
-  group.expenses.forEach((e) => currencySet.add(e.currency));
-  group.payments.forEach((p) => currencySet.add(p.currency));
-  // Default to USD if no transactions exist
-  if (currencySet.size === 0) {
-    currencySet.add("USD");
-  }
-  const currencies = Array.from(currencySet);
+  const defaultCurrency = group.defaultCurrency || "USD";
+  const currencies = [defaultCurrency];
 
   const balancesByCurrency: Record<string, Record<string, MemberBalanceDetail>> = {};
   const debtsByCurrency: Record<string, SimplifiedDebt[]> = {};
 
-  for (const currency of currencies) {
-    const netBalances: Record<string, number> = {};
-    const memberDetails: Record<string, MemberBalanceDetail> = {};
+  const netBalances: Record<string, number> = {};
+  const memberDetails: Record<string, MemberBalanceDetail> = {};
 
-    // Initialize all members with 0
-    for (const member of members) {
-      netBalances[member.id] = 0;
-      memberDetails[member.id] = {
-        userId: member.id,
-        name: member.name,
-        username: member.username,
-        netBalance: 0,
-        paid: 0,
-        owed: 0,
-      };
-    }
-
-    // Process expenses
-    const currencyExpenses = group.expenses.filter((e) => e.currency === currency);
-    for (const expense of currencyExpenses) {
-      // Add paid amount to payer
-      if (netBalances[expense.payerId] !== undefined) {
-        netBalances[expense.payerId] += expense.amount;
-        memberDetails[expense.payerId].paid += expense.amount;
-      }
-      
-      // Subtract splits from members
-      for (const split of expense.splits) {
-        if (netBalances[split.userId] !== undefined) {
-          netBalances[split.userId] -= split.amount;
-          memberDetails[split.userId].owed += split.amount;
-        }
-      }
-    }
-
-    // Process payments (Settle Up)
-    const currencyPayments = group.payments.filter((p) => p.currency === currency);
-    for (const payment of currencyPayments) {
-      // Sender (payer) balance goes up (acts as paid/settled)
-      if (netBalances[payment.payerId] !== undefined) {
-        netBalances[payment.payerId] += payment.amount;
-        memberDetails[payment.payerId].paid += payment.amount;
-      }
-      // Receiver (payee) balance goes down (acts as owed/received)
-      if (netBalances[payment.payeeId] !== undefined) {
-        netBalances[payment.payeeId] -= payment.amount;
-        memberDetails[payment.payeeId].owed += payment.amount;
-      }
-    }
-
-    // Update net balances in details
-    for (const member of members) {
-      memberDetails[member.id].netBalance = parseFloat(netBalances[member.id].toFixed(2));
-    }
-
-    balancesByCurrency[currency] = memberDetails;
-    
-    // Simplify debts for this currency
-    debtsByCurrency[currency] = simplifyDebts(members, netBalances, currency);
+  // Initialize all members with 0
+  for (const member of members) {
+    netBalances[member.id] = 0;
+    memberDetails[member.id] = {
+      userId: member.id,
+      name: member.name,
+      username: member.username,
+      netBalance: 0,
+      paid: 0,
+      owed: 0,
+    };
   }
+
+  // Process expenses (converting values to group's default currency)
+  for (const expense of group.expenses) {
+    // Add converted amount to payer
+    if (netBalances[expense.payerId] !== undefined) {
+      netBalances[expense.payerId] += expense.convertedAmount;
+      memberDetails[expense.payerId].paid += expense.convertedAmount;
+    }
+    
+    // Subtract splits from members (splits are stored in default currency)
+    for (const split of expense.splits) {
+      if (netBalances[split.userId] !== undefined) {
+        netBalances[split.userId] -= split.amount;
+        memberDetails[split.userId].owed += split.amount;
+      }
+    }
+  }
+
+  // Process payments (Settle Up) in group's default currency
+  const groupPayments = group.payments.filter((p) => p.currency === defaultCurrency);
+  for (const payment of groupPayments) {
+    // Sender (payer) balance goes up (acts as paid/settled)
+    if (netBalances[payment.payerId] !== undefined) {
+      netBalances[payment.payerId] += payment.amount;
+      memberDetails[payment.payerId].paid += payment.amount;
+    }
+    // Receiver (payee) balance goes down (acts as owed/received)
+    if (netBalances[payment.payeeId] !== undefined) {
+      netBalances[payment.payeeId] -= payment.amount;
+      memberDetails[payment.payeeId].owed += payment.amount;
+    }
+  }
+
+  // Update net balances in details
+  for (const member of members) {
+    memberDetails[member.id].netBalance = parseFloat(netBalances[member.id].toFixed(2));
+    memberDetails[member.id].paid = parseFloat(memberDetails[member.id].paid.toFixed(2));
+    memberDetails[member.id].owed = parseFloat(memberDetails[member.id].owed.toFixed(2));
+  }
+
+  balancesByCurrency[defaultCurrency] = memberDetails;
+  
+  // Simplify debts in the default currency
+  debtsByCurrency[defaultCurrency] = simplifyDebts(members, netBalances, defaultCurrency);
 
   return {
     groupId,

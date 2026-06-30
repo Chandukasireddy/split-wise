@@ -63,7 +63,8 @@ export async function searchUsers(
 export async function createGroup(
   name: string,
   description: string,
-  memberIds: string[]
+  memberIds: string[],
+  defaultCurrency: string = "USD"
 ): Promise<GroupActionResult> {
   const session = await getCurrentUser();
   if (!session) {
@@ -83,6 +84,7 @@ export async function createGroup(
         data: {
           name: trimmedName,
           description: description.trim() || null,
+          defaultCurrency: defaultCurrency,
           createdById: session.userId,
         },
       });
