@@ -34,8 +34,8 @@ export async function searchUsers(
         AND: [
           {
             OR: [
-              { username: { contains: trimmedQuery } },
-              { name: { contains: trimmedQuery } },
+              { username: { contains: trimmedQuery, mode: "insensitive" } },
+              { name: { contains: trimmedQuery, mode: "insensitive" } },
             ],
           },
           // Exclude current user from search

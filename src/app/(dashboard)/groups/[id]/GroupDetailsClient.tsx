@@ -141,10 +141,14 @@ export default function GroupDetailsClient({
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
 
+  // Overflow menu (mobile)
+  const [showOverflow, setShowOverflow] = useState(false);
+
   // Add Member Form state
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [memberSearchResults, setMemberSearchResults] = useState<Member[]>([]);
+  const [memberSearching, setMemberSearching] = useState(false);
   const [membersToAdd, setMembersToAdd] = useState<Member[]>([]);
   const [addMemberLoading, setAddMemberLoading] = useState(false);
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
@@ -392,25 +396,23 @@ export default function GroupDetailsClient({
   // Debounced member search
   React.useEffect(() => {
     if (memberSearchQuery.trim().length < 2) {
-      const timer = setTimeout(() => {
-        setMemberSearchResults([]);
-      }, 0);
-      return () => clearTimeout(timer);
+      setMemberSearchResults([]);
+      setMemberSearching(false);
+      return;
     }
 
-    if (memberSearchTimeoutRef.current) {
-      clearTimeout(memberSearchTimeoutRef.current);
-    }
+    setMemberSearching(true);
+    if (memberSearchTimeoutRef.current) clearTimeout(memberSearchTimeoutRef.current);
 
     memberSearchTimeoutRef.current = setTimeout(async () => {
       const results = await searchUsers(memberSearchQuery);
-      // Filter out users who are already in the group or already added to the list
       const filtered = results.filter(
-        (r) => 
+        (r) =>
           !members.some((m) => m.id === r.id) &&
           !membersToAdd.some((m) => m.id === r.id)
       );
       setMemberSearchResults(filtered);
+      setMemberSearching(false);
     }, 400);
 
     return () => {
@@ -520,100 +522,119 @@ export default function GroupDetailsClient({
 
   return (
     <div style={styles.container} className="animate-fade-in">
-      {/* Header Back & Info */}
-      <div style={styles.navHeader}>
+
+      {/* ── Top bar ─────────────────────────────────────────── */}
+      <div style={styles.topBar}>
         <Link href="/dashboard" style={styles.backLink}>
           <ArrowLeft size={16} />
-          Back to Dashboard
+          <span className="mobile-hide">Back to Dashboard</span>
         </Link>
 
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          <button onClick={handleCSVExport} className="btn btn-secondary" style={styles.exportBtn}>
-            <FileDown size={16} />
-            Export Ledger
+        {/* Mobile: group name in centre */}
+        <span className="mobile-only" style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", flex: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 0.5rem" }}>
+          {group.name}
+        </span>
+
+        {/* Desktop action buttons */}
+        <div className="desktop-only" style={{ display: "flex", gap: "0.6rem" }}>
+          <button onClick={handleCSVExport} className="btn btn-secondary" style={styles.smBtn}>
+            <FileDown size={14} /> Export
           </button>
-          <button
-            onClick={() => { setSettingsName(group.name); setSettingsDesc(group.description || ""); setSettingsCurrency(group.defaultCurrency); setShowGroupSettingsModal(true); }}
-            className="btn btn-secondary"
-            style={styles.exportBtn}
-          >
-            <Settings size={16} />
-            Group Settings
+          <button onClick={() => { setSettingsName(group.name); setSettingsDesc(group.description || ""); setSettingsCurrency(group.defaultCurrency); setShowGroupSettingsModal(true); }} className="btn btn-secondary" style={styles.smBtn}>
+            <Settings size={14} /> Settings
           </button>
-          <button
-            onClick={() => setShowDeleteGroupModal(true)}
-            style={styles.deleteGroupBtn}
-          >
-            <Trash2 size={16} />
-            Delete Group
+          <button onClick={() => setShowDeleteGroupModal(true)} style={styles.deleteGroupBtn}>
+            <Trash2 size={14} /> Delete
           </button>
+        </div>
+
+        {/* Mobile: overflow ⋮ button */}
+        <div className="mobile-only" style={{ position: "relative" }}>
+          <button onClick={() => setShowOverflow(!showOverflow)} style={styles.overflowBtn} aria-label="More options">
+            <span style={{ fontSize: "1.3rem", lineHeight: 1, letterSpacing: "0.05em" }}>⋮</span>
+          </button>
+          {showOverflow && (
+            <>
+              <div style={{ position: "fixed", inset: 0, zIndex: 399 }} onClick={() => setShowOverflow(false)} />
+              <div style={styles.overflowMenu}>
+                <button style={styles.overflowItem} onClick={() => { setShowOverflow(false); handleCSVExport(); }}><FileDown size={15} /> Export Ledger</button>
+                <button style={styles.overflowItem} onClick={() => { setShowOverflow(false); setSettingsName(group.name); setSettingsDesc(group.description || ""); setSettingsCurrency(group.defaultCurrency); setShowGroupSettingsModal(true); }}><Settings size={15} /> Group Settings</button>
+                <button style={{ ...styles.overflowItem, color: "#ef4444" }} onClick={() => { setShowOverflow(false); setShowDeleteGroupModal(true); }}><Trash2 size={15} /> Delete Group</button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
+      {/* ── Group Hero card ──────────────────────────────────── */}
       <div style={styles.groupHero} className="glass-card">
-        <div>
-          <h1 className="page-title" style={styles.groupHeroName}>{group.name}</h1>
-          <p style={styles.groupHeroDesc}>{group.description || "No description provided."}</p>
+        <div style={styles.heroLeft}>
+          <div style={styles.heroAvatar}>{group.name.charAt(0).toUpperCase()}</div>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={styles.groupHeroName}>{group.name}</h1>
+            {group.description && <p style={styles.groupHeroDesc}>{group.description}</p>}
+            <div style={styles.memberPills}>
+              {members.slice(0, 4).map((m) => (
+                <span key={m.id} style={styles.memberPill} title={m.name}>{m.name.charAt(0).toUpperCase()}</span>
+              ))}
+              {members.length > 4 && <span style={{ ...styles.memberPill, background: "var(--surface-hover)", color: "var(--text-muted)" }}>+{members.length - 4}</span>}
+              <span style={styles.memberCount}>{members.length} members</span>
+            </div>
+          </div>
         </div>
 
-        <div style={styles.actionRow}>
-          <button 
-            onClick={() => {
-              setExpensePayer(currentUser.userId);
-              setShowExpenseModal(true);
-            }} 
-            className="btn btn-primary"
-          >
-            <Plus size={18} />
-            Add Expense
+        {/* Desktop primary actions */}
+        <div className="desktop-only" style={styles.actionRow}>
+          <button onClick={() => { setExpensePayer(currentUser.userId); setShowExpenseModal(true); }} className="btn btn-primary">
+            <Plus size={17} /> Add Expense
           </button>
-          <button 
-            onClick={() => {
-              setSettlePayer(members[0]?.id || "");
-              setSettlePayee(members[1]?.id || "");
-              setShowSettleModal(true);
-            }} 
-            className="btn btn-secondary"
-          >
-            <PiggyBank size={18} />
-            Settle Up
+          <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setShowSettleModal(true); }} className="btn btn-secondary">
+            <PiggyBank size={17} /> Settle Up
+          </button>
+        </div>
+
+        {/* Mobile: two buttons row below hero info */}
+        <div className="mobile-only" style={{ width: "100%", display: "flex", gap: "0.75rem", marginTop: "0.75rem" }}>
+          <button onClick={() => { setExpensePayer(currentUser.userId); setShowExpenseModal(true); }} className="btn btn-primary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
+            <Plus size={16} /> Add Expense
+          </button>
+          <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setShowSettleModal(true); }} className="btn btn-secondary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
+            <PiggyBank size={16} /> Settle Up
           </button>
         </div>
       </div>
 
-      {/* Tabs Menu */}
-      <div style={styles.tabsMenu}>
-        <button
-          onClick={() => setActiveTab("expenses")}
-          style={{
-            ...styles.tabBtn,
-            color: activeTab === "expenses" ? "var(--text-primary)" : "var(--text-secondary)",
-            borderBottom: activeTab === "expenses" ? "2px solid var(--primary)" : "2px solid transparent",
-          }}
-        >
-          Expenses Ledger ({group.expenses.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("debts")}
-          style={{
-            ...styles.tabBtn,
-            color: activeTab === "debts" ? "var(--text-primary)" : "var(--text-secondary)",
-            borderBottom: activeTab === "debts" ? "2px solid var(--primary)" : "2px solid transparent",
-          }}
-        >
-          Balances & Settlements
-        </button>
-        <button
-          onClick={() => setActiveTab("analytics")}
-          style={{
-            ...styles.tabBtn,
-            color: activeTab === "analytics" ? "var(--text-primary)" : "var(--text-secondary)",
-            borderBottom: activeTab === "analytics" ? "2px solid var(--primary)" : "2px solid transparent",
-          }}
-        >
-          Spending Analytics
-        </button>
+      {/* ── Tabs ─────────────────────────────────────────────── */}
+      <div style={styles.tabsMenu} className="tabs-scroll">
+        {([
+          ["expenses", `Expenses (${group.expenses.length})`],
+          ["debts", "Balances"],
+          ["analytics", "Analytics"],
+        ] as const).map(([tab, label]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              ...styles.tabBtn,
+              color: activeTab === tab ? "var(--text-primary)" : "var(--text-secondary)",
+              fontWeight: activeTab === tab ? 700 : 500,
+              borderBottom: activeTab === tab ? "2px solid var(--primary)" : "2px solid transparent",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+
+      {/* Floating Action Button — mobile only, for Add Expense */}
+      <button
+        className="group-fab"
+        onClick={() => { setExpensePayer(currentUser.userId); setShowExpenseModal(true); }}
+        aria-label="Add expense"
+      >
+        <Plus size={26} />
+      </button>
 
       {/* Dynamic Tab Contents */}
       <div style={{ minHeight: "400px" }}>
@@ -1456,46 +1477,37 @@ export default function GroupDetailsClient({
 
             <form onSubmit={handleAddMembersSubmit} style={styles.modalForm}>
               <div style={styles.modalFormGroup}>
-                <label className="form-label">Search Users (by name or username)</label>
+                <label className="form-label">Search by name or username</label>
                 <div style={{ position: "relative" }}>
                   <input
                     type="text"
-                    placeholder="Type name (min 2 chars)..."
+                    placeholder="Type at least 2 characters…"
                     value={memberSearchQuery}
                     onChange={(e) => setMemberSearchQuery(e.target.value)}
                     className="form-input"
+                    style={{ paddingRight: "2.5rem" }}
                   />
-                  {memberSearchQuery.trim().length >= 2 && memberSearchResults.length === 0 && (
+                  {memberSearching && (
+                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.75rem", color: "var(--primary)" }}>
+                      searching…
+                    </span>
+                  )}
+                  {memberSearchQuery.trim().length >= 2 && !memberSearching && memberSearchResults.length === 0 && (
                     <div style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: 0,
-                      right: 0,
-                      background: "#f8fafc",
-                      border: "1px solid var(--border-light)",
-                      borderRadius: "0.375rem",
-                      padding: "0.5rem",
-                      fontSize: "0.85rem",
-                      color: "var(--text-muted)",
-                      zIndex: 10,
-                      marginTop: "0.25rem"
+                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                      background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
+                      padding: "0.6rem 0.875rem", fontSize: "0.82rem", color: "var(--text-muted)", zIndex: 20,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}>
-                      No new users found matching &quot;{memberSearchQuery}&quot;
+                      No users found matching &quot;{memberSearchQuery}&quot; — they may already be in this group.
                     </div>
                   )}
                   {memberSearchResults.length > 0 && (
                     <div style={{
-                      position: "absolute",
-                      top: "100%",
-                      left: 0,
-                      right: 0,
-                      background: "#f8fafc",
-                      border: "1px solid var(--border-light)",
-                      borderRadius: "0.375rem",
-                      maxHeight: "150px",
-                      overflowY: "auto",
-                      zIndex: 10,
-                      marginTop: "0.25rem"
+                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                      background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
+                      maxHeight: "180px", overflowY: "auto", zIndex: 20,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                     }}>
                       {memberSearchResults.map((user) => (
                         <div
@@ -1599,57 +1611,140 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1.5rem",
     width: "100%",
   },
-  navHeader: {
+  /* ── Header ── */
+  topBar: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: "0.5rem",
   },
   backLink: {
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.5rem",
-    fontSize: "0.9rem",
+    gap: "0.4rem",
+    fontSize: "0.88rem",
+    fontWeight: 500,
+    color: "var(--text-secondary)",
+    flexShrink: 0,
+  },
+  smBtn: { padding: "0.4rem 0.875rem", fontSize: "0.8rem", gap: "0.35rem" },
+  overflowBtn: {
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "8px",
+    width: "36px",
+    height: "36px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
     color: "var(--text-secondary)",
   },
-  exportBtn: {
-    padding: "0.5rem 1rem",
-    fontSize: "0.85rem",
+  overflowMenu: {
+    position: "absolute",
+    top: "calc(100% + 6px)",
+    right: 0,
+    background: "#fff",
+    border: "1px solid var(--border-light)",
+    borderRadius: "12px",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+    zIndex: 400,
+    minWidth: "180px",
+    overflow: "hidden",
   },
+  overflowItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.6rem",
+    width: "100%",
+    padding: "0.75rem 1rem",
+    background: "transparent",
+    border: "none",
+    borderBottom: "1px solid var(--border-light)",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "var(--text-primary)",
+    cursor: "pointer",
+    textAlign: "left" as const,
+  },
+  /* ── Hero card ── */
   groupHero: {
     display: "flex",
-    justifyContent: "space-between",
+    flexDirection: "column" as const,
+    gap: "0",
+    padding: "1.25rem",
+  },
+  heroLeft: {
+    display: "flex",
     alignItems: "center",
-    flexWrap: "wrap",
-    gap: "1.5rem",
-    padding: "2rem",
+    gap: "0.875rem",
+    flex: 1,
+    minWidth: 0,
+  },
+  heroAvatar: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "12px",
+    background: "linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 800,
+    fontSize: "1.2rem",
+    color: "#fff",
+    flexShrink: 0,
   },
   groupHeroName: {
-    fontSize: "1.25rem",
+    fontSize: "1.1rem",
     fontWeight: 800,
     color: "var(--text-primary)",
+    letterSpacing: "-0.02em",
   },
   groupHeroDesc: {
-    fontSize: "0.95rem",
+    fontSize: "0.8rem",
     color: "var(--text-secondary)",
-    marginTop: "0.25rem",
+    marginTop: "0.15rem",
   },
-  actionRow: {
+  memberPills: {
     display: "flex",
-    gap: "1rem",
+    alignItems: "center",
+    gap: "0.25rem",
+    marginTop: "0.4rem",
   },
+  memberPill: {
+    width: "22px",
+    height: "22px",
+    borderRadius: "50%",
+    background: "rgba(16,185,129,0.15)",
+    color: "var(--primary)",
+    fontSize: "0.65rem",
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "1.5px solid #fff",
+  },
+  memberCount: {
+    fontSize: "0.72rem",
+    color: "var(--text-muted)",
+    marginLeft: "0.25rem",
+  },
+  actionRow: { display: "flex", gap: "0.75rem", flexShrink: 0 },
+  /* ── Tabs ── */
   tabsMenu: {
     display: "flex",
     borderBottom: "1px solid var(--border-light)",
-    gap: "2rem",
+    gap: "0",
   },
   tabBtn: {
     background: "transparent",
     border: "none",
-    padding: "0.75rem 0.5rem",
-    fontSize: "0.95rem",
-    fontWeight: 600,
+    padding: "0.65rem 1rem",
+    fontSize: "0.88rem",
+    fontWeight: 500,
     cursor: "pointer",
-    transition: "all 0.2s ease",
+    transition: "color 0.15s",
+    flexShrink: 0,
   },
   tabContentGrid: {
     display: "grid",

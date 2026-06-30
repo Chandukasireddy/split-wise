@@ -355,6 +355,9 @@ p {
   gap: 1.25rem;
 }
 
+/* Mobile-only / desktop-only helpers */
+.mobile-only { display: none; }
+
 @media (max-width: 768px) {
   .page-title {
     font-size: 1.25rem !important;
@@ -377,11 +380,49 @@ p {
     gap: 1rem !important;
   }
   .container {
-    padding: 0 1rem;
+    padding: 0 0.875rem;
   }
   .glass-card {
     border-radius: 12px;
   }
+  .mobile-only { display: flex !important; }
+  .mobile-hide { display: none !important; }
 }
+
+/* Floating Action Button */
+.group-fab {
+  display: none;
+}
+@media (max-width: 768px) {
+  .group-fab {
+    display: flex;
+    position: fixed;
+    bottom: 80px; /* above bottom nav */
+    right: 1.25rem;
+    z-index: 500;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(16,185,129,0.45);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .group-fab:active {
+    transform: scale(0.93);
+  }
+}
+
+/* Horizontal scrolling tabs on mobile */
+.tabs-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs-scroll::-webkit-scrollbar { display: none; }
 
 
