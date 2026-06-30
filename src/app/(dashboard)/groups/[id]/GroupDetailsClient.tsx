@@ -2,18 +2,19 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { addExpense, deleteExpense } from "@/app/actions/expenseActions";
+import { addExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
 import { settleUp } from "@/app/actions/settleActions";
-import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
+import { searchUsers, addMembersToGroup, deleteGroup } from "@/app/actions/groupActions";
 import { GroupCalculatedBalances } from "@/lib/balances";
-import { 
-  Users, 
-  Plus, 
-  ArrowLeft, 
-  DollarSign, 
-  Trash2, 
-  PieChart as ChartIcon, 
-  FileDown, 
+import {
+  Users,
+  Plus,
+  ArrowLeft,
+  DollarSign,
+  Trash2,
+  Pencil,
+  PieChart as ChartIcon,
+  FileDown,
   Calendar,
   ArrowRight,
   X,
@@ -119,6 +120,13 @@ export default function GroupDetailsClient({
   const [settleAmt, setSettleAmt] = useState("");
   const [settleCurrency, setSettleCurrency] = useState(group.defaultCurrency);
   
+  // Edit Expense state
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+
+  // Delete Group state
+  const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
+  const [deleteGroupLoading, setDeleteGroupLoading] = useState(false);
+
   // Add Member Form state
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
@@ -260,6 +268,98 @@ export default function GroupDetailsClient({
     }
   }
 
+  // Open the expense modal pre-filled for editing
+  function openEditModal(expense: Expense) {
+    setEditingExpenseId(expense.id);
+    setExpenseDesc(expense.description);
+    setExpenseAmt(String(expense.amount));
+    setExpenseCategory(expense.category);
+    setExpenseCurrency(expense.currency);
+    setExpensePayer(expense.payerId);
+    setExpenseSplitType(expense.splitType as "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES");
+    setExpenseConversionRate(String(expense.conversionRate));
+
+    // Pre-fill custom splits from stored split data
+    const initial: Record<string, string> = {};
+    members.forEach((m) => {
+      const split = expense.splits.find((s) => s.userId === m.id);
+      if (expense.splitType === "EQUAL") {
+        initial[m.id] = split ? "true" : "false";
+      } else if (expense.splitType === "PERCENTAGE") {
+        initial[m.id] = split?.percentage != null ? String(split.percentage) : "0";
+      } else if (expense.splitType === "SHARES") {
+        initial[m.id] = split?.shares != null ? String(split.shares) : "0";
+      } else {
+        // UNEQUAL: stored in converted currency, convert back to original
+        const rawAmount = split ? parseFloat((split.amount / expense.conversionRate).toFixed(2)) : 0;
+        initial[m.id] = String(rawAmount);
+      }
+    });
+    setCustomSplits(initial);
+    setFormError(null);
+    setShowExpenseModal(true);
+  }
+
+  // Submit handler for editing an expense
+  async function handleEditExpenseSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingExpenseId) return;
+    setFormError(null);
+    const amount = parseFloat(expenseAmt);
+    if (isNaN(amount) || amount <= 0) { setFormError("Please enter a valid amount."); return; }
+
+    setLoading(true);
+
+    const splitsPayload = members
+      .filter((m) => expenseSplitType === "EQUAL" ? customSplits[m.id] === "true" : true)
+      .map((m) => {
+        const val = parseFloat(customSplits[m.id]) || 0;
+        return {
+          userId: m.id,
+          amount: expenseSplitType === "UNEQUAL" ? val : undefined,
+          percentage: expenseSplitType === "PERCENTAGE" ? val : undefined,
+          shares: expenseSplitType === "SHARES" ? val : undefined,
+        };
+      });
+
+    const conversionRate = expenseCurrency === group.defaultCurrency ? 1.0 : (parseFloat(expenseConversionRate) || 1.0);
+
+    const res = await updateExpense(
+      editingExpenseId,
+      expenseDesc,
+      amount,
+      expenseCategory,
+      expenseCurrency,
+      expensePayer,
+      expenseSplitType,
+      splitsPayload,
+      conversionRate
+    );
+
+    if (res.success) {
+      setShowExpenseModal(false);
+      setEditingExpenseId(null);
+      setExpenseDesc(""); setExpenseAmt(""); setExpenseCategory("General"); setExpenseConversionRate("1.0");
+      router.refresh();
+    } else {
+      setFormError(res.error || "Failed to update expense.");
+    }
+    setLoading(false);
+  }
+
+  // Delete the entire group
+  async function handleDeleteGroup() {
+    setDeleteGroupLoading(true);
+    const res = await deleteGroup(group.id);
+    if (res.success) {
+      router.push("/dashboard");
+    } else {
+      alert(res.error || "Failed to delete group.");
+      setDeleteGroupLoading(false);
+      setShowDeleteGroupModal(false);
+    }
+  }
+
   // Debounced member search
   React.useEffect(() => {
     if (memberSearchQuery.trim().length < 2) {
@@ -398,10 +498,19 @@ export default function GroupDetailsClient({
           Back to Dashboard
         </Link>
 
-        <button onClick={handleCSVExport} className="btn btn-secondary" style={styles.exportBtn}>
-          <FileDown size={16} />
-          Export Ledger
-        </button>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button onClick={handleCSVExport} className="btn btn-secondary" style={styles.exportBtn}>
+            <FileDown size={16} />
+            Export Ledger
+          </button>
+          <button
+            onClick={() => setShowDeleteGroupModal(true)}
+            style={styles.deleteGroupBtn}
+          >
+            <Trash2 size={16} />
+            Delete Group
+          </button>
+        </div>
       </div>
 
       <div style={styles.groupHero} className="glass-card">
@@ -554,13 +663,22 @@ export default function GroupDetailsClient({
                           )}
                         </div>
 
-                        <button
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          style={styles.deleteBtn}
-                          title="Delete expense"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: "flex", gap: "0.25rem" }}>
+                          <button
+                            onClick={() => openEditModal(expense)}
+                            style={styles.editBtn}
+                            title="Edit expense"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            style={styles.deleteBtn}
+                            title="Delete expense"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -867,20 +985,20 @@ export default function GroupDetailsClient({
 
       {/* ----------------- MODALS ----------------- */}
 
-      {/* Add Expense Modal */}
+      {/* Add / Edit Expense Modal */}
       {showExpenseModal && (
         <div style={styles.modalOverlay}>
           <div className="glass-card" style={styles.modalCard}>
             <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>Add an Expense</h2>
-              <button onClick={() => { setShowExpenseModal(false); setFormError(null); }} style={styles.modalCloseBtn}>
+              <h2 style={styles.modalTitle}>{editingExpenseId ? "Edit Expense" : "Add an Expense"}</h2>
+              <button onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setFormError(null); }} style={styles.modalCloseBtn}>
                 <X size={20} />
               </button>
             </div>
 
             {formError && <div style={styles.modalErrorBox}>{formError}</div>}
 
-            <form onSubmit={handleAddExpenseSubmit} style={styles.modalForm}>
+            <form onSubmit={editingExpenseId ? handleEditExpenseSubmit : handleAddExpenseSubmit} style={styles.modalForm}>
               <div style={styles.modalFormRow}>
                 <div style={{ flex: 2 }}>
                   <label htmlFor="expDesc" className="form-label">Description *</label>
@@ -1077,11 +1195,11 @@ export default function GroupDetailsClient({
               </div>
 
               <div style={styles.modalActions}>
-                <button type="button" onClick={() => { setShowExpenseModal(false); setFormError(null); }} className="btn btn-secondary">
+                <button type="button" onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setFormError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
                 <button type="submit" disabled={loading} className="btn btn-primary">
-                  {loading ? "Saving..." : "Add Expense"}
+                  {loading ? "Saving..." : editingExpenseId ? "Save Changes" : "Add Expense"}
                 </button>
               </div>
             </form>
@@ -1175,6 +1293,36 @@ export default function GroupDetailsClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Group Confirmation Modal */}
+      {showDeleteGroupModal && (
+        <div style={styles.modalOverlay}>
+          <div className="glass-card" style={{ ...styles.modalCard, maxWidth: "420px" }}>
+            <div style={styles.modalHeader}>
+              <h2 style={{ ...styles.modalTitle, color: "#f43f5e" }}>Delete Group</h2>
+              <button onClick={() => setShowDeleteGroupModal(false)} style={styles.modalCloseBtn}>
+                <X size={20} />
+              </button>
+            </div>
+            <p style={{ fontSize: "0.95rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{group.name}</strong>?
+              This will permanently remove all expenses, splits, settlements, and member records. This action cannot be undone.
+            </p>
+            <div style={styles.modalActions}>
+              <button onClick={() => setShowDeleteGroupModal(false)} className="btn btn-secondary">
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteGroup}
+                disabled={deleteGroupLoading}
+                style={styles.deleteGroupConfirmBtn}
+              >
+                {deleteGroupLoading ? "Deleting..." : "Yes, Delete Group"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1494,17 +1642,56 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.95rem",
     fontWeight: 600,
   },
-  deleteBtn: {
+  editBtn: {
     background: "transparent",
     border: "none",
     color: "var(--text-muted)",
     cursor: "pointer",
-    padding: "0.5rem",
+    padding: "0.4rem",
     borderRadius: "6px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     transition: "color 0.2s, background-color 0.2s",
+  },
+  deleteBtn: {
+    background: "transparent",
+    border: "none",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    padding: "0.4rem",
+    borderRadius: "6px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "color 0.2s, background-color 0.2s",
+  },
+  deleteGroupBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    padding: "0.5rem 1rem",
+    fontSize: "0.85rem",
+    fontWeight: 600,
+    background: "rgba(244, 63, 94, 0.08)",
+    border: "1px solid rgba(244, 63, 94, 0.3)",
+    color: "#f43f5e",
+    borderRadius: "10px",
+    cursor: "pointer",
+    transition: "background 0.2s",
+  },
+  deleteGroupConfirmBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    padding: "0.6rem 1.25rem",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    background: "#f43f5e",
+    border: "none",
+    color: "#fff",
+    borderRadius: "10px",
+    cursor: "pointer",
   },
   sidebarCard: {
     padding: "1.5rem",

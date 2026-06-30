@@ -252,6 +252,139 @@ export async function addExpense(
 }
 
 /**
+ * Server action to update an existing expense and recalculate splits.
+ */
+export async function updateExpense(
+  expenseId: string,
+  description: string,
+  amount: number,
+  category: string,
+  currency: string,
+  payerId: string,
+  splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
+  splits: SplitInput[],
+  conversionRate: number = 1.0
+): Promise<ExpenseActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized. Please log in." };
+
+  const trimmedDesc = description.trim();
+  if (!trimmedDesc) return { success: false, error: "Description is required." };
+  if (amount <= 0) return { success: false, error: "Amount must be greater than 0." };
+  if (splits.length === 0) return { success: false, error: "At least one person must split the expense." };
+
+  try {
+    const expense = await db.expense.findUnique({
+      where: { id: expenseId },
+      include: { group: { include: { members: true } } },
+    });
+
+    if (!expense) return { success: false, error: "Expense not found." };
+    if (!expense.group) return { success: false, error: "Group not found." };
+
+    const isMember = expense.group.members.some((m) => m.userId === session.userId);
+    if (!isMember) return { success: false, error: "You are not a member of this group." };
+
+    const payer = expense.group.members.find((m) => m.userId === payerId);
+    if (!payer) return { success: false, error: "Selected payer is not in the group." };
+
+    const convertedAmount = parseFloat((amount * conversionRate).toFixed(2));
+
+    let calculatedSplits: { userId: string; amount: number; percentage?: number; shares?: number }[] = [];
+    let sumCalculated = 0;
+
+    if (splitType === "EQUAL") {
+      const shareCount = splits.length;
+      const baseShare = Math.floor((convertedAmount / shareCount) * 100) / 100;
+      let remainder = parseFloat((convertedAmount - baseShare * shareCount).toFixed(2));
+      calculatedSplits = splits.map((s) => {
+        let userAmount = baseShare;
+        if (remainder > 0) { userAmount += 0.01; remainder = parseFloat((remainder - 0.01).toFixed(2)); }
+        userAmount = parseFloat(userAmount.toFixed(2));
+        sumCalculated += userAmount;
+        return { userId: s.userId, amount: userAmount };
+      });
+    } else if (splitType === "UNEQUAL") {
+      let totalProvided = 0;
+      splits.forEach((s) => { totalProvided += s.amount || 0; });
+      if (Math.abs(totalProvided - amount) > 0.01)
+        return { success: false, error: `Sum of splits (${totalProvided.toFixed(2)}) must equal total amount (${amount.toFixed(2)}).` };
+      let remainder = convertedAmount;
+      calculatedSplits = splits.map((s, idx) => {
+        const val = s.amount || 0;
+        let convertedVal = Math.floor((val * conversionRate) * 100) / 100;
+        remainder = parseFloat((remainder - convertedVal).toFixed(2));
+        if (idx === splits.length - 1) convertedVal = parseFloat((convertedVal + remainder).toFixed(2));
+        sumCalculated += convertedVal;
+        return { userId: s.userId, amount: convertedVal };
+      });
+    } else if (splitType === "PERCENTAGE") {
+      let totalPercent = 0;
+      splits.forEach((s) => { totalPercent += s.percentage || 0; });
+      if (Math.abs(totalPercent - 100) > 0.01)
+        return { success: false, error: `Sum of percentages must equal 100% (currently ${totalPercent}%).` };
+      let remainder = convertedAmount;
+      calculatedSplits = splits.map((s, idx) => {
+        const percent = s.percentage || 0;
+        let userAmount = Math.floor((convertedAmount * (percent / 100)) * 100) / 100;
+        remainder = parseFloat((remainder - userAmount).toFixed(2));
+        if (idx === splits.length - 1) userAmount = parseFloat((userAmount + remainder).toFixed(2));
+        sumCalculated += userAmount;
+        return { userId: s.userId, amount: userAmount, percentage: percent };
+      });
+    } else if (splitType === "SHARES") {
+      let totalShares = 0;
+      splits.forEach((s) => { totalShares += s.shares || 0; });
+      if (totalShares <= 0) return { success: false, error: "Total shares must be greater than 0." };
+      let remainder = convertedAmount;
+      calculatedSplits = splits.map((s, idx) => {
+        const userShares = s.shares || 0;
+        let userAmount = Math.floor((convertedAmount * (userShares / totalShares)) * 100) / 100;
+        remainder = parseFloat((remainder - userAmount).toFixed(2));
+        if (idx === splits.length - 1) userAmount = parseFloat((userAmount + remainder).toFixed(2));
+        sumCalculated += userAmount;
+        return { userId: s.userId, amount: userAmount, shares: userShares };
+      });
+    }
+
+    if (Math.abs(sumCalculated - convertedAmount) > 0.02)
+      return { success: false, error: "Calculation mismatch: split sums do not equal converted total." };
+
+    await db.$transaction(async (tx) => {
+      await tx.expense.update({
+        where: { id: expenseId },
+        data: { description: trimmedDesc, amount, category, currency, payerId, splitType, conversionRate, convertedAmount },
+      });
+
+      await tx.expenseSplit.deleteMany({ where: { expenseId } });
+
+      await tx.expenseSplit.createMany({
+        data: calculatedSplits.map((cs) => ({
+          expenseId,
+          userId: cs.userId,
+          amount: cs.amount,
+          percentage: cs.percentage ?? null,
+          shares: cs.shares ?? null,
+        })),
+      });
+
+      await tx.activityLog.create({
+        data: {
+          userId: session.userId,
+          groupId: expense.groupId!,
+          description: `edited the expense "${trimmedDesc}"`,
+        },
+      });
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Update expense error:", err);
+    return { success: false, error: "Failed to update expense." };
+  }
+}
+
+/**
  * Server action to delete an expense.
  */
 export async function deleteExpense(

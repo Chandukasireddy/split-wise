@@ -211,6 +211,32 @@ export async function addMembersToGroup(
 }
 
 /**
+ * Server action to delete a group and all its data.
+ */
+export async function deleteGroup(groupId: string): Promise<GroupActionResult> {
+  const session = await getCurrentUser();
+  if (!session) return { success: false, error: "Unauthorized. Please log in." };
+
+  try {
+    const group = await db.group.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true, createdById: true },
+    });
+
+    if (!group) return { success: false, error: "Group not found." };
+    if (group.createdById !== session.userId)
+      return { success: false, error: "Only the group creator can delete this group." };
+
+    await db.group.delete({ where: { id: groupId } });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Delete group error:", err);
+    return { success: false, error: "Failed to delete group." };
+  }
+}
+
+/**
  * Server action to join a group using an invite link.
  */
 export async function joinGroup(groupId: string): Promise<GroupActionResult> {
