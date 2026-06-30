@@ -76,7 +76,7 @@ export default async function ActivitiesPage() {
               return (
                 <div key={log.id} style={{
                   ...styles.logItem,
-                  borderBottom: index === logs.length - 1 ? "none" : "1px solid rgba(0, 0, 0, )"
+                  borderBottom: index === logs.length - 1 ? "none" : "1px solid var(--border-light)"
                 }}>
                   <div style={styles.logLeft}>
                     <div style={styles.avatar}>
@@ -85,7 +85,7 @@ export default async function ActivitiesPage() {
                     
                     <div style={styles.logContent}>
                       <span style={styles.logText}>
-                        <strong style={{ color: "#fff" }}>{log.user.name}</strong> (@{log.user.username}) {log.description}
+                        <strong style={{ color: "var(--text-primary)" }}>{log.user.name}</strong> (@{log.user.username}) {log.description}
                       </span>
                       <div style={styles.logMeta}>
                         <span style={styles.logTime}>

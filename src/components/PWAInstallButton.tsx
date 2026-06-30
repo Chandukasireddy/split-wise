@@ -319,8 +319,8 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.4,
   },
   highlightBadge: {
-    backgroundColor: "rgba(0, 0, 0, )",
-    border: "1px solid rgba(0, 0, 0, )",
+    backgroundColor: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
     padding: "0.1rem 0.35rem",
     borderRadius: "4px",
     fontSize: "0.8rem",

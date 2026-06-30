@@ -249,14 +249,14 @@ export default async function DashboardPage() {
                 {recentActivities.map((log, index) => (
                   <div key={log.id} style={{
                     ...styles.activityItem,
-                    borderBottom: index === recentActivities.length - 1 ? "none" : "1px solid rgba(0, 0, 0, )"
+                    borderBottom: index === recentActivities.length - 1 ? "none" : "1px solid var(--border-light)"
                   }}>
                     <div style={styles.activityAvatar}>
                       {log.user.name.charAt(0).toUpperCase()}
                     </div>
                     <div style={styles.activityContent}>
                       <span style={styles.activityText}>
-                        <strong style={{ color: "#fff" }}>{log.user.name}</strong> {log.description}
+                      <strong style={{ color: "var(--text-primary)" }}>{log.user.name}</strong> {log.description}
                       </span>
                       <span style={styles.activityTime}>
                         {new Date(log.createdAt).toLocaleDateString(undefined, {
@@ -383,7 +383,7 @@ const styles: Record<string, React.CSSProperties> = {
   sectionCount: {
     fontSize: "0.85rem",
     color: "var(--text-muted)",
-    background: "rgba(0, 0, 0, )",
+    background: "rgba(16, 185, 129, 0.08)",
     padding: "0.2rem 0.6rem",
     borderRadius: "20px",
   },
@@ -486,7 +486,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: "28px",
     height: "28px",
     borderRadius: "50%",
-    backgroundColor: "rgba(0, 0, 0, )",
+    backgroundColor: "rgba(16, 185, 129, 0.08)",
     border: "1px solid var(--border-light)",
     display: "flex",
     alignItems: "center",

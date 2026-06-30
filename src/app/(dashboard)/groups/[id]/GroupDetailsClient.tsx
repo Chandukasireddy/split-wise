@@ -441,7 +441,7 @@ export default function GroupDetailsClient({
           onClick={() => setActiveTab("expenses")}
           style={{
             ...styles.tabBtn,
-            color: activeTab === "expenses" ? "#fff" : "var(--text-secondary)",
+            color: activeTab === "expenses" ? "var(--text-primary)" : "var(--text-secondary)",
             borderBottom: activeTab === "expenses" ? "2px solid var(--primary)" : "2px solid transparent",
           }}
         >
@@ -451,7 +451,7 @@ export default function GroupDetailsClient({
           onClick={() => setActiveTab("debts")}
           style={{
             ...styles.tabBtn,
-            color: activeTab === "debts" ? "#fff" : "var(--text-secondary)",
+            color: activeTab === "debts" ? "var(--text-primary)" : "var(--text-secondary)",
             borderBottom: activeTab === "debts" ? "2px solid var(--primary)" : "2px solid transparent",
           }}
         >
@@ -461,7 +461,7 @@ export default function GroupDetailsClient({
           onClick={() => setActiveTab("analytics")}
           style={{
             ...styles.tabBtn,
-            color: activeTab === "analytics" ? "#fff" : "var(--text-secondary)",
+            color: activeTab === "analytics" ? "var(--text-primary)" : "var(--text-secondary)",
             borderBottom: activeTab === "analytics" ? "2px solid var(--primary)" : "2px solid transparent",
           }}
         >
@@ -581,8 +581,8 @@ export default function GroupDetailsClient({
                       type="button"
                       onClick={handleCopyInviteLink}
                       style={{
-                        background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "rgba(0, 0, 0, )",
-                        border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(0, 0, 0, )",
+                        background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "var(--surface-hover)",
+                        border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid var(--border-light)",
                         color: inviteCopied ? "var(--owed)" : "var(--text-muted)",
                         padding: "0.25rem 0.5rem",
                         borderRadius: "0.375rem",
@@ -798,7 +798,7 @@ export default function GroupDetailsClient({
                       cy="110"
                       r="70"
                       fill="transparent"
-                      stroke="rgba(0, 0, 0, )"
+                      stroke="var(--border-light)"
                       strokeWidth="24"
                     />
                     
@@ -832,7 +832,7 @@ export default function GroupDetailsClient({
                   
                   <div style={styles.chartInnerLabel}>
                     <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Total spent</span>
-                    <span style={{ fontSize: "1.25rem", fontWeight: 700, color: "#fff" }}>
+                    <span style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)" }}>
                       {formatCurrency(totalSpentInCurrency, activeCurrency)}
                     </span>
                   </div>
@@ -1219,7 +1219,7 @@ export default function GroupDetailsClient({
                       left: 0,
                       right: 0,
                       background: "#f8fafc",
-                      border: "1px solid rgba(0, 0, 0, )",
+                      border: "1px solid var(--border-light)",
                       borderRadius: "0.375rem",
                       padding: "0.5rem",
                       fontSize: "0.85rem",
@@ -1237,7 +1237,7 @@ export default function GroupDetailsClient({
                       left: 0,
                       right: 0,
                       background: "#f8fafc",
-                      border: "1px solid rgba(0, 0, 0, )",
+                      border: "1px solid var(--border-light)",
                       borderRadius: "0.375rem",
                       maxHeight: "150px",
                       overflowY: "auto",
@@ -1256,9 +1256,9 @@ export default function GroupDetailsClient({
                             padding: "0.5rem",
                             cursor: "pointer",
                             fontSize: "0.85rem",
-                            borderBottom: "1px solid rgba(0, 0, 0, )",
+                            borderBottom: "1px solid var(--border-light)",
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "rgba(0, 0, 0, )"}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-hover)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                         >
                           <strong>{user.name}</strong> (@{user.username})
@@ -1386,7 +1386,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tabsMenu: {
     display: "flex",
-    borderBottom: "1px solid rgba(0, 0, 0, )",
+    borderBottom: "1px solid var(--border-light)",
     gap: "2rem",
   },
   tabBtn: {
@@ -1435,8 +1435,8 @@ const styles: Record<string, React.CSSProperties> = {
   expenseDateBadge: {
     width: "48px",
     height: "48px",
-    background: "rgba(0, 0, 0, )",
-    border: "1px solid rgba(0, 0, 0, )",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
     borderRadius: "10px",
     display: "flex",
     flexDirection: "column",
@@ -1515,7 +1515,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "0.5rem",
-    borderBottom: "1px solid rgba(0, 0, 0, )",
+    borderBottom: "1px solid var(--border-light)",
     paddingBottom: "0.75rem",
     marginBottom: "1rem",
   },
@@ -1538,8 +1538,8 @@ const styles: Record<string, React.CSSProperties> = {
     width: "32px",
     height: "32px",
     borderRadius: "8px",
-    backgroundColor: "rgba(0, 0, 0, )",
-    border: "1px solid rgba(0, 0, 0, )",
+    backgroundColor: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -1620,13 +1620,13 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "0.6rem 0",
-    borderBottom: "1px solid rgba(0, 0, 0, )",
+    borderBottom: "1px solid var(--border-light)",
   },
   analyticsCard: {
     padding: "2rem",
   },
   analyticsHeader: {
-    borderBottom: "1px solid rgba(0, 0, 0, )",
+    borderBottom: "1px solid var(--border-light)",
     paddingBottom: "1rem",
     marginBottom: "2rem",
   },
@@ -1677,8 +1677,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     padding: "0.5rem 0.75rem",
     borderRadius: "8px",
-    background: "rgba(0, 0, 0, )",
-    border: "1px solid rgba(0, 0, 0, )",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
   },
   legendLeft: {
     display: "flex",
@@ -1768,8 +1768,8 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1rem",
   },
   splitBox: {
-    background: "rgba(0, 0, 0, )",
-    border: "1px solid rgba(0, 0, 0, )",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
     borderRadius: "12px",
     padding: "1rem",
   },
