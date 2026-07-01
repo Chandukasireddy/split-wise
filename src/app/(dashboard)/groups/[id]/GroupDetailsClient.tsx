@@ -627,15 +627,6 @@ export default function GroupDetailsClient({
         ))}
       </div>
 
-      {/* Floating Action Button — mobile only, for Add Expense */}
-      <button
-        className="group-fab"
-        onClick={() => { setExpensePayer(currentUser.userId); setShowExpenseModal(true); }}
-        aria-label="Add expense"
-      >
-        <Plus size={26} />
-      </button>
-
       {/* Dynamic Tab Contents */}
       <div style={{ minHeight: "400px" }}>
         {/* Expenses Tab */}

@@ -277,7 +277,7 @@ p {
   display: none; /* Hidden on desktop */
   justify-content: space-around;
   align-items: center;
-  z-index: 1000;
+  z-index: 601;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
 }
 

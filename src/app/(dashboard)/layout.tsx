@@ -92,7 +92,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: "1px solid rgba(0, 0, 0, 0.07)",
     position: "sticky",
     top: 0,
-    zIndex: 100,
+    zIndex: 600,
     height: "64px",
     display: "flex",
     alignItems: "center",
