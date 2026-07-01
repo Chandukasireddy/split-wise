@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 export const revalidate = 30;
-export const unstable_instant = true;
 
 export default async function DashboardPage() {
   const session = await getCurrentUser();
