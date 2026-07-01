@@ -47,11 +47,35 @@ export default function PWAInstallButton() {
       }
     }, 0);
 
-    // 3. Register Service Worker
+    // 3. Remove any previously-registered service worker.
+    //    Older SW versions intercepted navigation/RSC requests and cached JS
+    //    chunks, which breaks client-side navigation and pins the app to a stale
+    //    build. We unregister every existing SW and purge all caches so the app
+    //    always runs directly against the network. If the page was being
+    //    controlled by an old SW, reload once (guarded) so it runs SW-free.
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js")
-        .then((reg) => console.log("Service Worker registered successfully:", reg.scope))
-        .catch((err) => console.error("Service Worker registration failed:", err));
+      const hadController = !!navigator.serviceWorker.controller;
+
+      const unregisterAll = navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+        .catch(() => []);
+
+      const clearCaches =
+        typeof caches !== "undefined"
+          ? caches
+              .keys()
+              .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+              .catch(() => [])
+          : Promise.resolve([]);
+
+      Promise.all([unregisterAll, clearCaches]).then(() => {
+        const w = window as Window & { __swKilled?: boolean };
+        if (hadController && !w.__swKilled) {
+          w.__swKilled = true;
+          window.location.reload();
+        }
+      });
     }
 
     // 4. Capture native install prompt (Android / Chrome)
