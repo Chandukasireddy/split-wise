@@ -120,7 +120,7 @@ export default function ProfilePage() {
         <div style={{ flex: 1 }}>
           <div style={styles.heroName}>{profile.name}</div>
           <div style={styles.heroUsername}>@{profile.username}</div>
-          <div style={styles.heroSince}>Member since {new Date(profile.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })}</div>
+          <div style={styles.heroSince}>Member since {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}</div>
         </div>
       </div>
 

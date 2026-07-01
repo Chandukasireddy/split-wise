@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -87,6 +88,9 @@ export async function settleUp(
       });
     });
 
+    revalidatePath(`/groups/${groupId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true };
   } catch (err) {
     console.error("Settle up error:", err);

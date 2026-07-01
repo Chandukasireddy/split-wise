@@ -1,7 +1,15 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+
+/** Invalidate every page that reflects group/expense data so the UI updates instantly. */
+function revalidateGroupViews(groupId: string) {
+  revalidatePath(`/groups/${groupId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/activities");
+}
 
 export interface ExpenseActionResult {
   success: boolean;
@@ -244,6 +252,7 @@ export async function addExpense(
       });
     });
 
+    revalidateGroupViews(groupId);
     return { success: true };
   } catch (err) {
     console.error("Add expense error:", err);
@@ -377,6 +386,7 @@ export async function updateExpense(
       });
     });
 
+    if (expense.groupId) revalidateGroupViews(expense.groupId);
     return { success: true };
   } catch (err) {
     console.error("Update expense error:", err);
@@ -422,6 +432,7 @@ export async function deleteExpense(
       });
     });
 
+    if (expense.groupId) revalidateGroupViews(expense.groupId);
     return { success: true };
   } catch (err) {
     console.error("Delete expense error:", err);

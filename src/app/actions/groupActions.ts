@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -123,6 +124,8 @@ export async function createGroup(
       return group;
     });
 
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true, groupId: result.id };
   } catch (err) {
     console.error("Create group error:", err);
@@ -203,6 +206,9 @@ export async function addMembersToGroup(
       });
     });
 
+    revalidatePath(`/groups/${groupId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true };
   } catch (err) {
     console.error("Add members to group error:", err);
@@ -241,6 +247,8 @@ export async function updateGroupSettings(
       data: { name: trimmedName, description: description.trim() || null, defaultCurrency },
     });
 
+    revalidatePath(`/groups/${groupId}`);
+    revalidatePath("/dashboard");
     return { success: true };
   } catch (err) {
     console.error("Update group settings error:", err);
@@ -267,6 +275,8 @@ export async function deleteGroup(groupId: string): Promise<GroupActionResult> {
 
     await db.group.delete({ where: { id: groupId } });
 
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true };
   } catch (err) {
     console.error("Delete group error:", err);
@@ -323,6 +333,9 @@ export async function joinGroup(groupId: string): Promise<GroupActionResult> {
       });
     });
 
+    revalidatePath(`/groups/${group.id}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true, groupId: group.id };
   } catch (err) {
     console.error("Join group error:", err);

@@ -43,7 +43,7 @@ export default function ActivitiesClient({ logs, currentUserId }: Props) {
   // Group logs by date
   const grouped: Record<string, LogEntry[]> = {};
   logs.forEach((log) => {
-    const key = new Date(log.createdAt).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+    const key = new Date(log.createdAt).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(log);
   });
@@ -57,7 +57,7 @@ export default function ActivitiesClient({ logs, currentUserId }: Props) {
             const isOpen = expanded === log.id;
             const isOwn = log.userId === currentUserId;
             const short = log.description.length > 60 ? log.description.slice(0, 60) + "…" : log.description;
-            const time = new Date(log.createdAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+            const time = new Date(log.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
             return (
               <div

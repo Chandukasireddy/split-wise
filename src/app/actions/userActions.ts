@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import bcrypt from "bcryptjs";
@@ -66,6 +67,8 @@ export async function deleteActivityLog(logId: string): Promise<ProfileActionRes
     if (!log) return { success: false, error: "Activity not found." };
     if (log.userId !== session.userId) return { success: false, error: "You can only delete your own activities." };
     await db.activityLog.delete({ where: { id: logId } });
+    revalidatePath("/activities");
+    revalidatePath("/dashboard");
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete activity." };

@@ -481,12 +481,16 @@ export default function GroupDetailsClient({
     document.body.removeChild(link);
   }
 
-  // Currency formatting helper
+  // Currency formatting helper (defensive: invalid ISO codes must not crash render)
   function formatCurrency(amount: number, currency: string = "EUR") {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: currency || "EUR",
+      }).format(amount);
+    } catch {
+      return `${currency} ${amount.toFixed(2)}`;
+    }
   }
 
   // Calculate Category-wise breakdown for active currency in tabs (defaults to USD or first available)
@@ -652,10 +656,10 @@ export default function GroupDetailsClient({
                       <div key={expense.id} className="glass-card expense-item" style={styles.expenseItem}>
                         <div style={styles.expenseDateBadge}>
                           <span style={styles.dateMonth}>
-                            {new Date(expense.date).toLocaleDateString(undefined, { month: "short" })}
+                            {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
                           </span>
                           <span style={styles.dateDay}>
-                            {new Date(expense.date).toLocaleDateString(undefined, { day: "numeric" })}
+                            {new Date(expense.date).toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
                           </span>
                         </div>
 
@@ -940,7 +944,7 @@ export default function GroupDetailsClient({
                           </div>
                         </div>
                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                          {new Date(payment.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                          {new Date(payment.date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
                         </span>
                       </div>
                     ))}

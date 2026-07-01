@@ -210,7 +210,7 @@ export default async function DashboardPage() {
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{log.description}</span>
                       </p>
                       <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                        {new Date(log.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {new Date(log.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
                       </span>
                     </div>
                   </div>
