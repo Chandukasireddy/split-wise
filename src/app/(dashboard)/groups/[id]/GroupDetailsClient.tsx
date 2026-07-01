@@ -155,7 +155,12 @@ export default function GroupDetailsClient({
   const memberSearchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
 
-  const members = group.members.map((m) => m.user);
+  // IMPORTANT: memoize so `members` keeps a stable reference across re-renders.
+  // It is a dependency of the effects below; a fresh array every render made
+  // those effects re-run and setState on every render — an infinite render loop
+  // ("Maximum update depth exceeded") that froze the whole page and killed
+  // navigation while a group was open.
+  const members = React.useMemo(() => group.members.map((m) => m.user), [group.members]);
 
   // Pre-fill helper when split type changes
   React.useEffect(() => {
