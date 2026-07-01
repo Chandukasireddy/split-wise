@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { getGroupCalculatedBalances } from "@/lib/balances";
 import GroupDetailsClient from "./GroupDetailsClient";
 
-export const revalidate = 0; // Ensure fresh calculations on page reload
+export const revalidate = 0;
+export const unstable_instant = true;
 
 interface PageProps {
   params: Promise<{ id: string }>;
