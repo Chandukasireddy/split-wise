@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-export const revalidate = 0;
+export const revalidate = 30;
 
 export default async function DashboardPage() {
   const session = await getCurrentUser();

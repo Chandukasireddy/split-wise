@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { ArrowLeft, Activity } from "lucide-react";
 import ActivitiesClient from "@/components/ActivitiesClient";
 
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function ActivitiesPage() {
   const session = await getCurrentUser();

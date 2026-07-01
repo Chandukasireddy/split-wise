@@ -526,12 +526,12 @@ export default function GroupDetailsClient({
       {/* ── Top bar ─────────────────────────────────────────── */}
       <div style={styles.topBar}>
         <Link href="/dashboard" style={styles.backLink}>
-          <ArrowLeft size={16} />
-          <span className="mobile-hide">Back to Dashboard</span>
+          <ArrowLeft size={18} />
+          <span>Dashboard</span>
         </Link>
 
-        {/* Mobile: group name in centre */}
-        <span className="mobile-only" style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", flex: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 0.5rem" }}>
+        {/* Desktop: group name in centre */}
+        <span className="desktop-only" style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", flex: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 0.5rem" }}>
           {group.name}
         </span>
 
@@ -1626,10 +1626,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: "inline-flex",
     alignItems: "center",
     gap: "0.4rem",
-    fontSize: "0.88rem",
-    fontWeight: 500,
-    color: "var(--text-secondary)",
+    fontSize: "0.9rem",
+    fontWeight: 600,
+    color: "var(--text-primary)",
     flexShrink: 0,
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "10px",
+    padding: "0.5rem 0.875rem",
+    minHeight: "44px",
   },
   smBtn: { padding: "0.4rem 0.875rem", fontSize: "0.8rem", gap: "0.35rem" },
   overflowBtn: {
