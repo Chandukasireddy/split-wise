@@ -9,6 +9,7 @@ import {
   getCurrentUserProfile,
 } from "@/app/actions/userActions";
 import { Pencil, Lock, X, CheckCircle2, AlertCircle, Loader2, LogOut, ShieldCheck, AtSign, User } from "lucide-react";
+import { Pencil, X, CheckCircle2, AlertCircle, Loader2, LogOut, ShieldCheck, AtSign, User } from "lucide-react";
 import { signOut } from "@/app/actions/authActions";
 
 interface Profile { id: string; name: string; username: string; createdAt: Date; }

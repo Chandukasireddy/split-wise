@@ -36,6 +36,8 @@ export async function addExpense(
   splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
   splits: SplitInput[],
   conversionRate: number = 1.0
+  conversionRate: number = 1.0,
+  date?: string | Date
 ): Promise<ExpenseActionResult> {
   const session = await getCurrentUser();
   if (!session) {
@@ -207,6 +209,14 @@ export async function addExpense(
 
     // Perform database writes in a transaction
     await db.$transaction(async (tx) => {
+      let expenseDate: Date | undefined = undefined;
+      if (date) {
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+          expenseDate = d;
+        }
+      }
+
       // 1. Create Expense
       const expense = await tx.expense.create({
         data: {
@@ -220,6 +230,7 @@ export async function addExpense(
           conversionRate,
           convertedAmount,
           createdById: session.userId,
+          ...(expenseDate ? { date: expenseDate } : {}),
         },
       });
 
@@ -273,6 +284,8 @@ export async function updateExpense(
   splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
   splits: SplitInput[],
   conversionRate: number = 1.0
+  conversionRate: number = 1.0,
+  date?: string | Date
 ): Promise<ExpenseActionResult> {
   const session = await getCurrentUser();
   if (!session) return { success: false, error: "Unauthorized. Please log in." };
@@ -360,9 +373,28 @@ export async function updateExpense(
       return { success: false, error: "Calculation mismatch: split sums do not equal converted total." };
 
     await db.$transaction(async (tx) => {
+      let expenseDate: Date | undefined = undefined;
+      if (date) {
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+          expenseDate = d;
+        }
+      }
+
       await tx.expense.update({
         where: { id: expenseId },
         data: { description: trimmedDesc, amount, category, currency, payerId, splitType, conversionRate, convertedAmount },
+        data: {
+          description: trimmedDesc,
+          amount,
+          category,
+          currency,
+          payerId,
+          splitType,
+          conversionRate,
+          convertedAmount,
+          ...(expenseDate ? { date: expenseDate } : {}),
+        },
       });
 
       await tx.expenseSplit.deleteMany({ where: { expenseId } });

@@ -109,6 +109,10 @@ export default function PWAInstallButton() {
       const dismissed = localStorage.getItem("pwa-prompt-dismissed");
       if (dismissed !== "true") {
         setShowBanner(true);
+        const timer = setTimeout(() => {
+          setShowBanner(true);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, [isInstallable, isInstalled, isMobile]);

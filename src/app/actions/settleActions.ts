@@ -18,6 +18,8 @@ export async function settleUp(
   groupId: string,
   payerId: string, // the debtor paying
   payeeId: string  // the creditor receiving
+  payeeId: string, // the creditor receiving
+  date?: string | Date
 ): Promise<SettleActionResult> {
   const session = await getCurrentUser();
   if (!session) {
@@ -57,6 +59,14 @@ export async function settleUp(
 
     // Perform database writes
     await db.$transaction(async (tx) => {
+      let paymentDate: Date | undefined = undefined;
+      if (date) {
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+          paymentDate = d;
+        }
+      }
+
       // 1. Create Payment
       await tx.payment.create({
         data: {
@@ -65,6 +75,7 @@ export async function settleUp(
           groupId,
           payerId,
           payeeId,
+          ...(paymentDate ? { date: paymentDate } : {}),
         },
       });
 
