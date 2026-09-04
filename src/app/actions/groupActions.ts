@@ -223,7 +223,8 @@ export async function updateGroupSettings(
   groupId: string,
   name: string,
   description: string,
-  defaultCurrency: string
+  defaultCurrency: string,
+  simplifyDebts: boolean = true
 ): Promise<GroupActionResult> {
   const session = await getCurrentUser();
   if (!session) return { success: false, error: "Unauthorized." };
@@ -244,7 +245,12 @@ export async function updateGroupSettings(
 
     await db.group.update({
       where: { id: groupId },
-      data: { name: trimmedName, description: description.trim() || null, defaultCurrency },
+      data: {
+        name: trimmedName,
+        description: description.trim() || null,
+        defaultCurrency,
+        simplifyDebts,
+      },
     });
 
     revalidatePath(`/groups/${groupId}`);

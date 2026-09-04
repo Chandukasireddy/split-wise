@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { simplifyDebts, SimplifiedDebt } from "./debts";
+import { simplifyDebts, calculateDirectDebts, SimplifiedDebt } from "./debts";
 
 export interface MemberBalanceDetail {
   userId: string;
@@ -14,6 +14,7 @@ export interface GroupCalculatedBalances {
   groupId: string;
   groupName: string;
   currencies: string[];
+  simplifyDebts: boolean;
   // Balances mapped by currency, then by userId
   balancesByCurrency: Record<string, Record<string, MemberBalanceDetail>>;
   // Simplified debts mapped by currency
@@ -108,13 +109,23 @@ export async function getGroupCalculatedBalances(
 
   balancesByCurrency[defaultCurrency] = memberDetails;
   
-  // Simplify debts in the default currency
-  debtsByCurrency[defaultCurrency] = simplifyDebts(members, netBalances, defaultCurrency);
+  const isSimplify = group.simplifyDebts ?? true;
+  if (isSimplify) {
+    debtsByCurrency[defaultCurrency] = simplifyDebts(members, netBalances, defaultCurrency);
+  } else {
+    debtsByCurrency[defaultCurrency] = calculateDirectDebts(
+      members,
+      group.expenses,
+      groupPayments,
+      defaultCurrency
+    );
+  }
 
   return {
     groupId,
     groupName: group.name,
     currencies,
+    simplifyDebts: isSimplify,
     balancesByCurrency,
     debtsByCurrency,
   };

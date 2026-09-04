@@ -101,3 +101,99 @@ export function simplifyDebts(
 
   return debts;
 }
+
+export interface DirectExpenseInput {
+  payerId: string;
+  splits: { userId: string; amount: number }[];
+}
+
+export interface DirectPaymentInput {
+  payerId: string;
+  payeeId: string;
+  amount: number;
+}
+
+/**
+ * Calculates direct, pairwise person-to-person debts without transitive simplification.
+ * Everyone pays back the exact individual who covered their expense splits.
+ */
+export function calculateDirectDebts(
+  members: { id: string; name: string; username: string }[],
+  expenses: DirectExpenseInput[],
+  payments: DirectPaymentInput[],
+  currency: string = "USD"
+): SimplifiedDebt[] {
+  // pairwise.get(A)!.get(B) represents net amount B owes A
+  const pairwise = new Map<string, Map<string, number>>();
+
+  for (const m1 of members) {
+    pairwise.set(m1.id, new Map<string, number>());
+    for (const m2 of members) {
+      pairwise.get(m1.id)!.set(m2.id, 0);
+    }
+  }
+
+  // 1. Accumulate expenses: debtor owes payer split.amount
+  for (const exp of expenses) {
+    const payerId = exp.payerId;
+    for (const split of exp.splits) {
+      const debtorId = split.userId;
+      if (debtorId !== payerId && pairwise.has(payerId) && pairwise.get(payerId)!.has(debtorId)) {
+        const current = pairwise.get(payerId)!.get(debtorId) || 0;
+        pairwise.get(payerId)!.set(debtorId, current + split.amount);
+        const reverse = pairwise.get(debtorId)!.get(payerId) || 0;
+        pairwise.get(debtorId)!.set(payerId, reverse - split.amount);
+      }
+    }
+  }
+
+  // 2. Accumulate payments (settlements): payer paid payee, reducing what payer owes payee
+  for (const p of payments) {
+    const payerId = p.payerId;
+    const payeeId = p.payeeId;
+    if (pairwise.has(payeeId) && pairwise.get(payeeId)!.has(payerId)) {
+      const current = pairwise.get(payeeId)!.get(payerId) || 0;
+      pairwise.get(payeeId)!.set(payerId, current - p.amount);
+      const reverse = pairwise.get(payerId)!.get(payeeId) || 0;
+      pairwise.get(payerId)!.set(payeeId, reverse + p.amount);
+    }
+  }
+
+  const debts: SimplifiedDebt[] = [];
+
+  for (let i = 0; i < members.length; i++) {
+    for (let j = i + 1; j < members.length; j++) {
+      const m1 = members[i];
+      const m2 = members[j];
+      const net = pairwise.get(m1.id)?.get(m2.id) || 0;
+
+      if (net > 0.01) {
+        // m2 owes m1
+        debts.push({
+          fromUserId: m2.id,
+          fromName: m2.name,
+          fromUsername: m2.username,
+          toUserId: m1.id,
+          toName: m1.name,
+          toUsername: m1.username,
+          amount: parseFloat(net.toFixed(2)),
+          currency,
+        });
+      } else if (net < -0.01) {
+        // m1 owes m2
+        debts.push({
+          fromUserId: m1.id,
+          fromName: m1.name,
+          fromUsername: m1.username,
+          toUserId: m2.id,
+          toName: m2.name,
+          toUsername: m2.username,
+          amount: parseFloat(Math.abs(net).toFixed(2)),
+          currency,
+        });
+      }
+    }
+  }
+
+  return debts;
+}

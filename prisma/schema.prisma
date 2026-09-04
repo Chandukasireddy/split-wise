@@ -31,6 +31,7 @@ model Group {
   name         String
   description  String?
   defaultCurrency String        @default("USD")
+  simplifyDebts   Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   

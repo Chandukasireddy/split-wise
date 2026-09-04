@@ -75,6 +75,7 @@ interface GroupDetailsClientProps {
     name: string;
     description: string | null;
     defaultCurrency: string;
+    simplifyDebts?: boolean;
     members: { user: Member }[];
     expenses: Expense[];
     payments: Payment[];
@@ -161,11 +162,9 @@ export default function GroupDetailsClient({
   const [settingsName, setSettingsName] = useState(group.name);
   const [settingsDesc, setSettingsDesc] = useState(group.description || "");
   const [settingsCurrency, setSettingsCurrency] = useState(group.defaultCurrency);
+  const [settingsSimplifyDebts, setSettingsSimplifyDebts] = useState(group.simplifyDebts ?? true);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
-
-  // Overflow menu (mobile)
-  const [showOverflow, setShowOverflow] = useState(false);
 
   // Add Member Form state
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -432,7 +431,13 @@ export default function GroupDetailsClient({
     e.preventDefault();
     setSettingsLoading(true);
     setSettingsError(null);
-    const res = await updateGroupSettings(group.id, settingsName, settingsDesc, settingsCurrency);
+    const res = await updateGroupSettings(
+      group.id,
+      settingsName,
+      settingsDesc,
+      settingsCurrency,
+      settingsSimplifyDebts
+    );
     if (res.success) {
       setShowGroupSettingsModal(false);
       router.refresh();
@@ -592,112 +597,179 @@ export default function GroupDetailsClient({
     }
   }
 
+  // Group expenses by Month & Year for Splitwise-style section headers
+  const expensesByMonth: { monthLabel: string; items: Expense[] }[] = [];
+  const monthMap = new Map<string, Expense[]>();
+
+  for (const exp of group.expenses) {
+    const d = new Date(exp.date);
+    const monthLabel = d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+    if (!monthMap.has(monthLabel)) {
+      monthMap.set(monthLabel, []);
+    }
+    monthMap.get(monthLabel)!.push(exp);
+  }
+
+  for (const [monthLabel, items] of monthMap.entries()) {
+    expensesByMonth.push({ monthLabel, items });
+  }
+
+  // Personal balance in group
+  const userBalanceDetail = balances.balancesByCurrency[group.defaultCurrency]?.[currentUser.userId];
+  const userNetBalance = userBalanceDetail?.netBalance || 0;
+  const currentDebts = balances.debtsByCurrency[group.defaultCurrency] || [];
+  const debtsOwedToUser = currentDebts.filter((d) => d.toUserId === currentUser.userId);
+  const debtsUserOwes = currentDebts.filter((d) => d.fromUserId === currentUser.userId);
+
   return (
     <div style={styles.container} className="animate-fade-in">
 
-      {/* ── Top bar ─────────────────────────────────────────── */}
-      <div style={styles.topBar}>
-        <Link href="/dashboard" style={styles.backLink}>
-          <ArrowLeft size={18} />
-          <span>Dashboard</span>
+      {/* ── Top Header Bar ───────────────────────────────────── */}
+      <div style={styles.headerRow}>
+        <Link href="/dashboard" style={styles.headerCircleBtn} title="Back to Dashboard">
+          <ArrowLeft size={19} />
         </Link>
+        <button
+          type="button"
+          onClick={() => {
+            setSettingsName(group.name);
+            setSettingsDesc(group.description || "");
+            setSettingsCurrency(group.defaultCurrency);
+            setSettingsSimplifyDebts(group.simplifyDebts ?? true);
+            setShowGroupSettingsModal(true);
+          }}
+          style={styles.headerCircleBtn}
+          title="Group Settings"
+        >
+          <Settings size={19} />
+        </button>
+      </div>
 
-        {/* Desktop: group name in centre */}
-        <span className="desktop-only" style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", flex: 1, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 0.5rem" }}>
-          {group.name}
-        </span>
-
-        {/* Desktop action buttons */}
-        <div className="desktop-only" style={{ display: "flex", gap: "0.6rem" }}>
-          <button onClick={handleCSVExport} className="btn btn-secondary" style={styles.smBtn}>
-            <FileDown size={14} /> Export
+      {/* ── Group Title & Members Pill ────────────────────────── */}
+      <div style={styles.titleSection}>
+        <h1 style={styles.groupTitleLarge}>{group.name}</h1>
+        {group.description && <p style={styles.groupSubtitle}>{group.description}</p>}
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.45rem" }}>
+          <button
+            type="button"
+            onClick={() => setShowAddMemberModal(true)}
+            className="group-pill-badge"
+            title="View or add group members"
+          >
+            <Users size={14} />
+            <span>{members.length} people</span>
           </button>
-          <button onClick={() => { setSettingsName(group.name); setSettingsDesc(group.description || ""); setSettingsCurrency(group.defaultCurrency); setShowGroupSettingsModal(true); }} className="btn btn-secondary" style={styles.smBtn}>
-            <Settings size={14} /> Settings
+          <button
+            type="button"
+            onClick={handleCSVExport}
+            className="group-pill-badge"
+            title="Export expenses to CSV"
+          >
+            <FileDown size={14} />
+            <span>Export</span>
           </button>
-          <button onClick={() => setShowDeleteGroupModal(true)} style={styles.deleteGroupBtn}>
-            <Trash2 size={14} /> Delete
+          <button
+            type="button"
+            onClick={() => setShowDeleteGroupModal(true)}
+            className="group-pill-badge"
+            style={{ color: "#f43f5e" }}
+            title="Delete group"
+          >
+            <Trash2 size={13} />
+            <span>Delete</span>
           </button>
         </div>
+      </div>
 
-        {/* Mobile: overflow ⋮ button */}
-        <div className="mobile-only" style={{ position: "relative" }}>
-          <button onClick={() => setShowOverflow(!showOverflow)} style={styles.overflowBtn} aria-label="More options">
-            <span style={{ fontSize: "1.3rem", lineHeight: 1, letterSpacing: "0.05em" }}>⋮</span>
-          </button>
-          {showOverflow && (
-            <>
-              <div style={{ position: "fixed", inset: 0, zIndex: 399 }} onClick={() => setShowOverflow(false)} />
-              <div style={styles.overflowMenu}>
-                <button style={styles.overflowItem} onClick={() => { setShowOverflow(false); handleCSVExport(); }}><FileDown size={15} /> Export Ledger</button>
-                <button style={styles.overflowItem} onClick={() => { setShowOverflow(false); setSettingsName(group.name); setSettingsDesc(group.description || ""); setSettingsCurrency(group.defaultCurrency); setShowGroupSettingsModal(true); }}><Settings size={15} /> Group Settings</button>
-                <button style={{ ...styles.overflowItem, color: "#ef4444" }} onClick={() => { setShowOverflow(false); setShowDeleteGroupModal(true); }}><Trash2 size={15} /> Delete Group</button>
-              </div>
-            </>
+      {/* ── Personal Balance Breakdown Card (Splitwise Mobile UI) ── */}
+      <div className="glass-card" style={styles.balanceSummaryCard}>
+        <div style={styles.balanceSummaryHeader}>
+          {userNetBalance > 0.01 ? (
+            <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
+              You are owed <span style={{ color: "var(--owed)" }}>{formatCurrency(userNetBalance, group.defaultCurrency)}</span> overall
+            </div>
+          ) : userNetBalance < -0.01 ? (
+            <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
+              You owe <span style={{ color: "#f59e0b" }}>{formatCurrency(Math.abs(userNetBalance), group.defaultCurrency)}</span> overall
+            </div>
+          ) : (
+            <div style={{ fontSize: "0.98rem", fontWeight: 600, color: "var(--text-secondary)" }}>
+              You are all settled up in this group
+            </div>
           )}
         </div>
-      </div>
 
-      {/* ── Group Hero card ──────────────────────────────────── */}
-      <div style={styles.groupHero} className="glass-card">
-        <div style={styles.heroLeft}>
-          <div style={styles.heroAvatar}>{group.name.charAt(0).toUpperCase()}</div>
-          <div style={{ minWidth: 0 }}>
-            <h1 style={styles.groupHeroName}>{group.name}</h1>
-            {group.description && <p style={styles.groupHeroDesc}>{group.description}</p>}
-            <div style={styles.memberPills}>
-              {members.slice(0, 4).map((m) => (
-                <span key={m.id} style={styles.memberPill} title={m.name}>{m.name.charAt(0).toUpperCase()}</span>
-              ))}
-              {members.length > 4 && <span style={{ ...styles.memberPill, background: "var(--surface-hover)", color: "var(--text-muted)" }}>+{members.length - 4}</span>}
-              <span style={styles.memberCount}>{members.length} members</span>
-            </div>
+        {/* Indented person breakdown with vertical accent line */}
+        {(debtsOwedToUser.length > 0 || debtsUserOwes.length > 0) && (
+          <div style={styles.balanceBreakdownList}>
+            {debtsOwedToUser.map((debt) => (
+              <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
+                  {debt.fromName} owes you{" "}
+                  <strong style={{ color: "var(--owed)" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
+                </span>
+              </div>
+            ))}
+            {debtsUserOwes.map((debt) => (
+              <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
+                  You owe {debt.toName}{" "}
+                  <strong style={{ color: "#f59e0b" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* Desktop primary actions */}
-        <div className="desktop-only" style={styles.actionRow}>
-          <button onClick={() => { setEditingExpenseId(null); setExpensePayer(currentUser.userId); setExpenseDate(new Date().toISOString().split("T")[0]); setShowExpenseModal(true); }} className="btn btn-primary">
-            <Plus size={17} /> Add Expense
-          </button>
-          <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setSettleDate(new Date().toISOString().split("T")[0]); setShowSettleModal(true); }} className="btn btn-secondary">
-            <PiggyBank size={17} /> Settle Up
-          </button>
-        </div>
-
-        {/* Mobile: two buttons row below hero info */}
-        <div className="mobile-only" style={{ width: "100%", display: "flex", gap: "0.75rem", marginTop: "0.75rem" }}>
-          <button onClick={() => { setEditingExpenseId(null); setExpensePayer(currentUser.userId); setExpenseDate(new Date().toISOString().split("T")[0]); setShowExpenseModal(true); }} className="btn btn-primary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
-            <Plus size={16} /> Add Expense
-          </button>
-          <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setSettleDate(new Date().toISOString().split("T")[0]); setShowSettleModal(true); }} className="btn btn-secondary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
-            <PiggyBank size={16} /> Settle Up
-          </button>
-        </div>
-      </div>
-
-      {/* ── Tabs ─────────────────────────────────────────────── */}
-      <div style={styles.tabsMenu} className="tabs-scroll">
-        {([
-          ["expenses", `Expenses (${group.expenses.length})`],
-          ["debts", "Balances"],
-          ["analytics", "Analytics"],
-        ] as const).map(([tab, label]) => (
+        {/* Action Pills */}
+        <div style={styles.actionPillsRow}>
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              ...styles.tabBtn,
-              color: activeTab === tab ? "var(--text-primary)" : "var(--text-secondary)",
-              fontWeight: activeTab === tab ? 700 : 500,
-              borderBottom: activeTab === tab ? "2px solid var(--primary)" : "2px solid transparent",
-              whiteSpace: "nowrap",
+            type="button"
+            onClick={() => {
+              setSettlePayer(members[0]?.id || "");
+              setSettlePayee(members[1]?.id || "");
+              setSettleDate(new Date().toISOString().split("T")[0]);
+              setShowSettleModal(true);
             }}
+            className="action-pill-btn"
           >
-            {label}
+            <PiggyBank size={14} color="var(--primary)" />
+            <span>Settle up</span>
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setActiveTab(activeTab === "analytics" ? "expenses" : "analytics")}
+            className={`action-pill-btn ${activeTab === "analytics" ? "active" : ""}`}
+          >
+            <ChartIcon size={14} />
+            <span>Analytics</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab(activeTab === "debts" ? "expenses" : "debts")}
+            className={`action-pill-btn ${activeTab === "debts" ? "active" : ""}`}
+          >
+            <Users size={14} />
+            <span>Balances</span>
+          </button>
+        </div>
       </div>
+
+      {/* ── Floating Action Button (Splitwise Mobile FAB) ── */}
+      <button
+        type="button"
+        onClick={() => {
+          setEditingExpenseId(null);
+          setExpensePayer(currentUser.userId);
+          setExpenseDate(new Date().toISOString().split("T")[0]);
+          setShowExpenseModal(true);
+        }}
+        className="splitwise-fab"
+        title="Add an expense"
+      >
+        <Plus size={18} strokeWidth={2.5} />
+        <span>Add expense</span>
+      </button>
 
       {/* Dynamic Tab Contents */}
       <div style={{ minHeight: "400px" }}>
@@ -712,88 +784,95 @@ export default function GroupDetailsClient({
                   <p>Click &quot;Add Expense&quot; to register the first shared bill.</p>
                 </div>
               ) : (
-                <div className="glass-card" style={styles.expenseCardContainer}>
-                  {group.expenses.map((expense, index) => {
-                    const payerName = members.find((m) => m.id === expense.payerId)?.name || "Group member";
-                    const isCurrentUserPayer = expense.payerId === currentUser.userId;
-                    
-                    // Find current user's split share
-                    const mySplit = expense.splits.find((s) => s.userId === currentUser.userId);
-                    const catColor = CATEGORY_COLORS[expense.category] || "#64748b";
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  {expensesByMonth.map(({ monthLabel, items }) => (
+                    <div key={monthLabel}>
+                      <div className="month-section-header">{monthLabel}</div>
+                      <div className="glass-card" style={styles.expenseCardContainer}>
+                        {items.map((expense, index) => {
+                          const payerName = members.find((m) => m.id === expense.payerId)?.name || "Group member";
+                          const isCurrentUserPayer = expense.payerId === currentUser.userId;
+                          const mySplit = expense.splits.find((s) => s.userId === currentUser.userId);
+                          const catColor = CATEGORY_COLORS[expense.category] || "#64748b";
 
-                    return (
-                      <div
-                        key={expense.id}
-                        className="expense-row-item"
-                        style={{
-                          ...styles.expenseRow,
-                          borderBottom: index < group.expenses.length - 1 ? "1px solid var(--border-light)" : "none",
-                        }}
-                        onClick={() => openEditModal(expense)}
-                        role="button"
-                        tabIndex={0}
-                        title="Click to edit expense"
-                      >
-                        <div style={styles.expenseRowLeft}>
-                          {/* Date badge */}
-                          <div style={styles.expenseDateBadge}>
-                            <span style={styles.dateMonth}>
-                              {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
-                            </span>
-                            <span style={styles.dateDay}>
-                              {new Date(expense.date).toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
-                            </span>
-                          </div>
+                          return (
+                            <div
+                              key={expense.id}
+                              className="expense-row-item"
+                              style={{
+                                ...styles.expenseRow,
+                                borderBottom: index < items.length - 1 ? "1px solid var(--border-light)" : "none",
+                              }}
+                              onClick={() => openEditModal(expense)}
+                              role="button"
+                              tabIndex={0}
+                              title="Click to edit expense"
+                            >
+                              <div style={styles.expenseRowLeft}>
+                                {/* Date badge */}
+                                <div style={styles.expenseDateBadge}>
+                                  <span style={styles.dateMonth}>
+                                    {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
+                                  </span>
+                                  <span style={styles.dateDay}>
+                                    {new Date(expense.date).toLocaleDateString("en-US", { day: "2-digit", timeZone: "UTC" })}
+                                  </span>
+                                </div>
 
-                          {/* Category icon */}
-                          <div
-                            style={{
-                              ...styles.categoryIconBadge,
-                              backgroundColor: `${catColor}15`,
-                              color: catColor,
-                              border: `1px solid ${catColor}35`,
-                            }}
-                            title={expense.category}
-                          >
-                            {getCategoryIcon(expense.category, 16)}
-                          </div>
+                                {/* Category icon */}
+                                <div
+                                  style={{
+                                    ...styles.categoryIconBadge,
+                                    backgroundColor: `${catColor}15`,
+                                    color: catColor,
+                                    border: `1px solid ${catColor}35`,
+                                  }}
+                                  title={expense.category}
+                                >
+                                  {getCategoryIcon(expense.category, 16)}
+                                </div>
 
-                          {/* Description & Payer */}
-                          <div style={styles.expenseTitleCol}>
-                            <span style={styles.expenseTitle}>{expense.description}</span>
-                            <span style={styles.expensePayerText}>
-                              paid by <strong style={{ color: "var(--text-primary)" }}>{payerName}</strong>
-                            </span>
-                          </div>
-                        </div>
+                                {/* Description & Payer */}
+                                <div style={styles.expenseTitleCol}>
+                                  <span style={styles.expenseTitle}>{expense.description}</span>
+                                  <span style={styles.expensePayerText}>
+                                    {isCurrentUserPayer ? "You" : payerName} paid {formatCurrency(expense.amount, expense.currency)}
+                                  </span>
+                                </div>
+                              </div>
 
-                        {/* Amount and split information */}
-                        <div style={styles.expenseRowRight}>
-                          <span style={styles.expenseAmountText}>
-                            {formatCurrency(expense.amount, expense.currency)}
-                          </span>
-                          {expense.conversionRate !== 1.0 && (
-                            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                              ({formatCurrency(expense.convertedAmount, group.defaultCurrency)})
-                            </span>
-                          )}
-                          {mySplit ? (
-                            isCurrentUserPayer ? (
-                              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--owed)" }}>
-                                you lent {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--owes)" }}>
-                                you owe {formatCurrency(mySplit.amount, group.defaultCurrency)}
-                              </span>
-                            )
-                          ) : (
-                            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>not involved</span>
-                          )}
-                        </div>
+                              {/* Amount and split status */}
+                              <div style={styles.expenseRowRight}>
+                                {mySplit ? (
+                                  isCurrentUserPayer ? (
+                                    <>
+                                      <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "var(--owed)" }}>
+                                        you lent
+                                      </span>
+                                      <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--owed)" }}>
+                                        {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#f59e0b" }}>
+                                        you borrowed
+                                      </span>
+                                      <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#f59e0b" }}>
+                                        {formatCurrency(mySplit.amount, group.defaultCurrency)}
+                                      </span>
+                                    </>
+                                  )
+                                ) : (
+                                  <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>not involved</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -903,11 +982,15 @@ export default function GroupDetailsClient({
         {/* Debts Tab */}
         {activeTab === "debts" && (
           <div style={styles.tabContentGrid} className="responsive-grid-2-1">
-            {/* Simplified Debts ledger */}
+            {/* Debts ledger */}
             <div style={styles.ledgerColumn}>
-              <h2 style={styles.sectionHeaderTitle}>Simplified Debts</h2>
+              <h2 style={styles.sectionHeaderTitle}>
+                {balances.simplifyDebts ? "Simplified Debts" : "Direct Debts"}
+              </h2>
               <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
-                These are the minimized transactions computed to balance all logs.
+                {balances.simplifyDebts
+                  ? "Debts are automatically combined to minimize the total number of repayments."
+                  : "Debts are calculated directly person-to-person without transitive simplification."}
               </p>
 
               <div style={styles.debtList}>
@@ -1554,6 +1637,29 @@ export default function GroupDetailsClient({
                 </span>
               </div>
 
+              <div style={styles.simplifyToggleBox}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.92rem", color: "var(--text-primary)" }}>
+                      Simplify Group Debts
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.2rem", lineHeight: 1.4 }}>
+                      Automatically combines debts across members to minimize the total number of repayments. Turn OFF for direct person-to-person debts.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={settingsSimplifyDebts}
+                    onClick={() => setSettingsSimplifyDebts(!settingsSimplifyDebts)}
+                    className={`switch-track ${settingsSimplifyDebts ? "active" : ""}`}
+                    title="Toggle simplify group debts"
+                  >
+                    <span className="switch-thumb" />
+                  </button>
+                </div>
+              </div>
+
               <div className="modal-actions-responsive" style={styles.modalActions}>
                 <button type="button" onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} className="btn btn-secondary">
                   Cancel
@@ -1813,124 +1919,85 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.5rem 0.875rem",
     minHeight: "44px",
   },
-  smBtn: { padding: "0.4rem 0.875rem", fontSize: "0.8rem", gap: "0.35rem" },
-  overflowBtn: {
+  /* ── Header Row ── */
+  headerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "0.85rem",
+  },
+  headerCircleBtn: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
     background: "var(--surface-hover)",
     border: "1px solid var(--border-light)",
-    borderRadius: "8px",
-    width: "36px",
-    height: "36px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    cursor: "pointer",
-    color: "var(--text-secondary)",
-  },
-  overflowMenu: {
-    position: "absolute",
-    top: "calc(100% + 6px)",
-    right: 0,
-    background: "#fff",
-    border: "1px solid var(--border-light)",
-    borderRadius: "12px",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-    zIndex: 400,
-    minWidth: "180px",
-    overflow: "hidden",
-  },
-  overflowItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.6rem",
-    width: "100%",
-    padding: "0.75rem 1rem",
-    background: "transparent",
-    border: "none",
-    borderBottom: "1px solid var(--border-light)",
-    fontSize: "0.875rem",
-    fontWeight: 500,
     color: "var(--text-primary)",
     cursor: "pointer",
-    textAlign: "left" as const,
+    transition: "background 0.15s ease",
   },
-  /* ── Hero card ── */
-  groupHero: {
+  /* ── Title & Quick Badges ── */
+  titleSection: {
     display: "flex",
-    flexDirection: "column" as const,
-    gap: "0",
-    padding: "1.25rem",
+    flexDirection: "column",
+    gap: "0.25rem",
+    marginBottom: "1rem",
   },
-  heroLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.875rem",
-    flex: 1,
-    minWidth: 0,
-  },
-  heroAvatar: {
-    width: "44px",
-    height: "44px",
-    borderRadius: "12px",
-    background: "linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: "1.2rem",
-    color: "#fff",
-    flexShrink: 0,
-  },
-  groupHeroName: {
-    fontSize: "1.1rem",
+  groupTitleLarge: {
+    fontSize: "1.85rem",
     fontWeight: 800,
     color: "var(--text-primary)",
     letterSpacing: "-0.02em",
+    margin: 0,
+    lineHeight: 1.2,
   },
-  groupHeroDesc: {
-    fontSize: "0.8rem",
+  groupSubtitle: {
+    fontSize: "0.85rem",
     color: "var(--text-secondary)",
-    marginTop: "0.15rem",
+    margin: "0.15rem 0 0 0",
   },
-  memberPills: {
+  /* ── Balance Summary Card (Splitwise Mobile style) ── */
+  balanceSummaryCard: {
+    padding: "1rem 1.15rem",
+    borderRadius: "14px",
+    marginBottom: "1.25rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+    background: "#ffffff",
+    border: "1px solid var(--border-light)",
+  },
+  balanceSummaryHeader: {
     display: "flex",
     alignItems: "center",
-    gap: "0.25rem",
-    marginTop: "0.4rem",
+    justifyContent: "space-between",
   },
-  memberPill: {
-    width: "22px",
-    height: "22px",
-    borderRadius: "50%",
-    background: "rgba(16,185,129,0.15)",
-    color: "var(--primary)",
-    fontSize: "0.65rem",
-    fontWeight: 700,
+  balanceBreakdownList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem",
+    paddingLeft: "0.75rem",
+    borderLeft: "3px solid #3b82f6",
+  },
+  balanceBreakdownItem: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    border: "1.5px solid #fff",
   },
-  memberCount: {
-    fontSize: "0.72rem",
-    color: "var(--text-muted)",
-    marginLeft: "0.25rem",
-  },
-  actionRow: { display: "flex", gap: "0.75rem", flexShrink: 0 },
-  /* ── Tabs ── */
-  tabsMenu: {
+  actionPillsRow: {
     display: "flex",
-    borderBottom: "1px solid var(--border-light)",
-    gap: "0",
+    gap: "0.5rem",
+    flexWrap: "wrap",
+    paddingTop: "0.25rem",
   },
-  tabBtn: {
-    background: "transparent",
-    border: "none",
-    padding: "0.65rem 1rem",
-    fontSize: "0.88rem",
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "color 0.15s",
-    flexShrink: 0,
+  simplifyToggleBox: {
+    padding: "0.85rem 1rem",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "12px",
+    marginTop: "0.25rem",
   },
   tabContentGrid: {
     display: "grid",
@@ -1984,11 +2051,11 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
   },
   expenseDateBadge: {
-    width: "42px",
-    height: "42px",
+    width: "38px",
+    height: "38px",
     background: "var(--surface-hover)",
     border: "1px solid var(--border-light)",
-    borderRadius: "9px",
+    borderRadius: "8px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -1996,23 +2063,23 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   dateMonth: {
-    fontSize: "0.62rem",
+    fontSize: "0.6rem",
     textTransform: "uppercase",
     fontWeight: 700,
     color: "var(--text-muted)",
     lineHeight: 1,
   },
   dateDay: {
-    fontSize: "1rem",
+    fontSize: "0.92rem",
     fontWeight: 700,
-    color: "var(--text-primary)",
+    color: "var(--text-secondary)",
     lineHeight: 1.1,
     marginTop: "1px",
   },
   categoryIconBadge: {
     width: "36px",
     height: "36px",
-    borderRadius: "10px",
+    borderRadius: "9px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -2021,11 +2088,11 @@ const styles: Record<string, React.CSSProperties> = {
   expenseTitleCol: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.15rem",
+    gap: "0.1rem",
     minWidth: 0,
   },
   expenseTitle: {
-    fontSize: "0.95rem",
+    fontSize: "0.92rem",
     fontWeight: 600,
     color: "var(--text-primary)",
     overflow: "hidden",
@@ -2033,19 +2100,19 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap",
   },
   expensePayerText: {
-    fontSize: "0.78rem",
+    fontSize: "0.75rem",
     color: "var(--text-muted)",
   },
   expenseRowRight: {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-end",
-    gap: "0.15rem",
+    gap: "0.1rem",
     flexShrink: 0,
     textAlign: "right",
   },
   expenseAmountText: {
-    fontSize: "0.95rem",
+    fontSize: "0.92rem",
     fontWeight: 700,
     color: "var(--text-primary)",
   },
