@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState } from "react";
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -1098,6 +1099,8 @@ export default function GroupDetailsClient({
       {/* ----------------- MODALS ----------------- */}
 
       {/* Add / Edit Expense Modal */}
+      {showExpenseModal && (
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
       {mounted && showExpenseModal && createPortal(
         <div 
           className="modal-overlay-responsive" 
@@ -1346,11 +1349,14 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
+        </div>
         </div>,
         document.body
       )}
 
       {/* Settle Up Modal */}
+      {showSettleModal && (
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
       {mounted && showSettleModal && createPortal(
         <div 
           className="modal-overlay-responsive" 
@@ -1466,11 +1472,14 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
+        </div>
         </div>,
         document.body
       )}
 
       {/* Group Settings Modal */}
+      {showGroupSettingsModal && (
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
       {mounted && showGroupSettingsModal && createPortal(
         <div 
           className="modal-overlay-responsive" 
@@ -1551,11 +1560,14 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
+        </div>
         </div>,
         document.body
       )}
 
       {/* Delete Group Confirmation Modal */}
+      {showDeleteGroupModal && (
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
       {mounted && showDeleteGroupModal && createPortal(
         <div 
           className="modal-overlay-responsive" 
@@ -1598,11 +1610,14 @@ export default function GroupDetailsClient({
               </button>
             </div>
           </div>
+        </div>
         </div>,
         document.body
       )}
 
       {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
       {mounted && showAddMemberModal && createPortal(
         <div 
           className="modal-overlay-responsive" 
@@ -1765,6 +1780,7 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
+        </div>
         </div>,
         document.body
       )}
