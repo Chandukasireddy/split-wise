@@ -15,7 +15,7 @@ export interface SettleActionResult {
 export async function settleUp(
   amount: number,
   currency: string,
-  groupId: string,
+  groupId: string | null | undefined,
   payerId: string, // the debtor paying
   payeeId: string, // the creditor receiving
   date?: string | Date
@@ -33,27 +33,36 @@ export async function settleUp(
     return { success: false, error: "You cannot settle up with yourself." };
   }
 
+  const effectiveGroupId = groupId && groupId !== "direct" ? groupId : null;
+
   try {
-    // Verify group memberships
-    const group = await db.group.findUnique({
-      where: { id: groupId },
-      include: { members: true },
-    });
+    if (effectiveGroupId) {
+      // Verify group memberships
+      const group = await db.group.findUnique({
+        where: { id: effectiveGroupId },
+        include: { members: true },
+      });
 
-    if (!group) {
-      return { success: false, error: "Group not found." };
-    }
+      if (!group) {
+        return { success: false, error: "Group not found." };
+      }
 
-    const isMember = group.members.some((m) => m.userId === session.userId);
-    if (!isMember) {
-      return { success: false, error: "You are not a member of this group." };
-    }
+      const isMember = group.members.some((m) => m.userId === session.userId);
+      if (!isMember) {
+        return { success: false, error: "You are not a member of this group." };
+      }
 
-    const payerExists = group.members.some((m) => m.userId === payerId);
-    const payeeExists = group.members.some((m) => m.userId === payeeId);
+      const payerExists = group.members.some((m) => m.userId === payerId);
+      const payeeExists = group.members.some((m) => m.userId === payeeId);
 
-    if (!payerExists || !payeeExists) {
-      return { success: false, error: "Payer or Payee is no longer in this group." };
+      if (!payerExists || !payeeExists) {
+        return { success: false, error: "Payer or Payee is no longer in this group." };
+      }
+    } else {
+      // 1-on-1 settlement
+      if (session.userId !== payerId && session.userId !== payeeId) {
+        return { success: false, error: "You must be either the payer or payee to record this settlement." };
+      }
     }
 
     // Perform database writes
@@ -71,7 +80,7 @@ export async function settleUp(
         data: {
           amount,
           currency,
-          groupId,
+          groupId: effectiveGroupId,
           payerId,
           payeeId,
           ...(paymentDate ? { date: paymentDate } : {}),
@@ -92,13 +101,16 @@ export async function settleUp(
       await tx.activityLog.create({
         data: {
           userId: session.userId,
-          groupId,
+          groupId: effectiveGroupId,
           description: `recorded a settlement: ${payerUser?.name} paid ${payeeUser?.name} ${currency} ${amount.toFixed(2)}`,
         },
       });
     });
 
-    revalidatePath(`/groups/${groupId}`);
+    if (effectiveGroupId) {
+      revalidatePath(`/groups/${effectiveGroupId}`);
+    }
+    revalidatePath("/friends");
     revalidatePath("/dashboard");
     revalidatePath("/activities");
     return { success: true };

@@ -31,7 +31,7 @@ export async function addExpense(
   amount: number,
   category: string,
   currency: string,
-  groupId: string,
+  groupId: string | null | undefined,
   payerId: string,
   splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
   splits: SplitInput[],
@@ -57,28 +57,42 @@ export async function addExpense(
     return { success: false, error: "At least one person must split the expense." };
   }
 
+  const effectiveGroupId = groupId && groupId !== "direct" ? groupId : null;
+
   try {
-    // Check if group exists and if payer/user is part of it
-    const group = await db.group.findUnique({
-      where: { id: groupId },
-      include: { members: true },
-    });
+    let groupCurrency = currency;
 
-    if (!group) {
-      return { success: false, error: "Group not found." };
+    if (effectiveGroupId) {
+      // Check if group exists and if payer/user is part of it
+      const group = await db.group.findUnique({
+        where: { id: effectiveGroupId },
+        include: { members: true },
+      });
+
+      if (!group) {
+        return { success: false, error: "Group not found." };
+      }
+
+      const isMember = group.members.some((m) => m.userId === session.userId);
+      if (!isMember) {
+        return { success: false, error: "You are not a member of this group." };
+      }
+
+      const payer = group.members.find((m) => m.userId === payerId);
+      if (!payer) {
+        return { success: false, error: "Selected payer is not in the group." };
+      }
+
+      groupCurrency = group.defaultCurrency;
+    } else {
+      // Direct 1-on-1 expense
+      const involved = session.userId === payerId || splits.some((s) => s.userId === session.userId);
+      if (!involved) {
+        return { success: false, error: "You must be either the payer or one of the recipients." };
+      }
     }
 
-    const isMember = group.members.some((m) => m.userId === session.userId);
-    if (!isMember) {
-      return { success: false, error: "You are not a member of this group." };
-    }
-
-    const payer = group.members.find((m) => m.userId === payerId);
-    if (!payer) {
-      return { success: false, error: "Selected payer is not in the group." };
-    }
-
-    // Calculate converted total amount in the group's default currency
+    // Calculate converted total amount in the currency
     const convertedAmount = parseFloat((amount * conversionRate).toFixed(2));
 
     // Process splits based on type and calculate exact amounts
@@ -223,7 +237,7 @@ export async function addExpense(
           amount,
           category,
           currency,
-          groupId,
+          groupId: effectiveGroupId,
           payerId,
           splitType,
           conversionRate,
@@ -252,17 +266,22 @@ export async function addExpense(
 
       // 3. Log Activity
       const displayAmt = `${currency} ${amount.toFixed(2)}`;
-      const convLogText = conversionRate !== 1.0 ? ` (converted: ${group.defaultCurrency} ${convertedAmount.toFixed(2)})` : "";
+      const convLogText = conversionRate !== 1.0 ? ` (converted: ${groupCurrency} ${convertedAmount.toFixed(2)})` : "";
       await tx.activityLog.create({
         data: {
           userId: session.userId,
-          groupId,
+          groupId: effectiveGroupId,
           description: `added "${trimmedDesc}" for ${displayAmt}${convLogText} (paid by ${payerUser?.name || "Member"})`,
         },
       });
     });
 
-    revalidateGroupViews(groupId);
+    if (effectiveGroupId) {
+      revalidateGroupViews(effectiveGroupId);
+    }
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true };
   } catch (err) {
     console.error("Add expense error:", err);
@@ -296,17 +315,24 @@ export async function updateExpense(
   try {
     const expense = await db.expense.findUnique({
       where: { id: expenseId },
-      include: { group: { include: { members: true } } },
+      include: { group: { include: { members: true } }, splits: true },
     });
 
     if (!expense) return { success: false, error: "Expense not found." };
-    if (!expense.group) return { success: false, error: "Group not found." };
 
-    const isMember = expense.group.members.some((m) => m.userId === session.userId);
-    if (!isMember) return { success: false, error: "You are not a member of this group." };
+    if (expense.groupId) {
+      if (!expense.group) return { success: false, error: "Group not found." };
 
-    const payer = expense.group.members.find((m) => m.userId === payerId);
-    if (!payer) return { success: false, error: "Selected payer is not in the group." };
+      const isMember = expense.group.members.some((m) => m.userId === session.userId);
+      if (!isMember) return { success: false, error: "You are not a member of this group." };
+
+      const payer = expense.group.members.find((m) => m.userId === payerId);
+      if (!payer) return { success: false, error: "Selected payer is not in the group." };
+    } else {
+      // 1-on-1 direct expense
+      const involved = expense.payerId === session.userId || expense.splits.some((s) => s.userId === session.userId);
+      if (!involved) return { success: false, error: "You are not involved in this expense." };
+    }
 
     const convertedAmount = parseFloat((amount * conversionRate).toFixed(2));
 
@@ -409,13 +435,16 @@ export async function updateExpense(
       await tx.activityLog.create({
         data: {
           userId: session.userId,
-          groupId: expense.groupId!,
+          groupId: expense.groupId ?? null,
           description: `edited the expense "${trimmedDesc}"`,
         },
       });
     });
 
     if (expense.groupId) revalidateGroupViews(expense.groupId);
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true };
   } catch (err) {
     console.error("Update expense error:", err);
@@ -462,6 +491,9 @@ export async function deleteExpense(
     });
 
     if (expense.groupId) revalidateGroupViews(expense.groupId);
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
     return { success: true };
   } catch (err) {
     console.error("Delete expense error:", err);

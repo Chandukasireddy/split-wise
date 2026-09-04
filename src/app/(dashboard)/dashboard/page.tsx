@@ -30,8 +30,8 @@ export default async function DashboardPage() {
       {/* Header */}
       <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>Dashboard</h1>
-          <p style={styles.subtitle}>Your shared expenses at a glance.</p>
+          <h1 style={styles.title}>Groups</h1>
+          <p style={styles.subtitle}>Manage your groups and split bills with ease.</p>
         </div>
         <Link href="/groups/new" className="btn btn-primary" style={styles.createBtn}>
           <Plus size={16} />

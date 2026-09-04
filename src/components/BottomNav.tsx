@@ -3,17 +3,17 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Activity, User } from "lucide-react";
+import { Users, UserCheck, Activity, User } from "lucide-react";
 
 interface BottomNavProps {
   displayName: string;
 }
 
 const navItems = [
-  { href: "/dashboard",  label: "Dashboard", icon: LayoutDashboard },
-  { href: "/friends",    label: "Friends",   icon: Users },
-  { href: "/activities", label: "Activity",  icon: Activity },
-  { href: "/profile",    label: "Profile",   icon: User },
+  { href: "/dashboard",  label: "Groups",   icon: Users },
+  { href: "/friends",    label: "Friends",  icon: UserCheck },
+  { href: "/activities", label: "Activity", icon: Activity },
+  { href: "/profile",    label: "Profile",  icon: User },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

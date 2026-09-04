@@ -19,7 +19,6 @@ import {
   Calendar,
   ArrowRight,
   X,
-  PlusCircle,
   PiggyBank,
   Share2,
   Utensils,
@@ -27,6 +26,7 @@ import {
   Zap,
   Film,
   Receipt,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -626,7 +626,7 @@ export default function GroupDetailsClient({
 
       {/* ── Top Header Bar ───────────────────────────────────── */}
       <div style={styles.headerRow}>
-        <Link href="/dashboard" style={styles.headerCircleBtn} title="Back to Dashboard">
+        <Link href="/dashboard" style={styles.headerCircleBtn} title="Back to Groups">
           <ArrowLeft size={19} />
         </Link>
         <button
@@ -654,7 +654,7 @@ export default function GroupDetailsClient({
             type="button"
             onClick={() => setShowAddMemberModal(true)}
             className="group-pill-badge"
-            title="View or add group members"
+            title="View members, copy invite link, or add people"
           >
             <Users size={14} />
             <span>{members.length} people</span>
@@ -775,207 +775,105 @@ export default function GroupDetailsClient({
       <div style={{ minHeight: "400px" }}>
         {/* Expenses Tab */}
         {activeTab === "expenses" && (
-          <div style={styles.tabContentGrid} className="responsive-grid-2-1">
-            <div style={styles.ledgerColumn}>
-              {group.expenses.length === 0 ? (
-                <div className="glass-card" style={styles.emptyStateCard}>
-                  <DollarSign size={40} color="var(--text-muted)" style={{ marginBottom: "1rem" }} />
-                  <h3>No expenses yet</h3>
-                  <p>Click &quot;Add Expense&quot; to register the first shared bill.</p>
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  {expensesByMonth.map(({ monthLabel, items }) => (
-                    <div key={monthLabel}>
-                      <div className="month-section-header">{monthLabel}</div>
-                      <div className="glass-card" style={styles.expenseCardContainer}>
-                        {items.map((expense, index) => {
-                          const payerName = members.find((m) => m.id === expense.payerId)?.name || "Group member";
-                          const isCurrentUserPayer = expense.payerId === currentUser.userId;
-                          const mySplit = expense.splits.find((s) => s.userId === currentUser.userId);
-                          const catColor = CATEGORY_COLORS[expense.category] || "#64748b";
+          <div style={{ width: "100%" }}>
+            {group.expenses.length === 0 ? (
+              <div className="glass-card" style={styles.emptyStateCard}>
+                <DollarSign size={40} color="var(--text-muted)" style={{ marginBottom: "1rem" }} />
+                <h3>No expenses yet</h3>
+                <p>Click &quot;Add Expense&quot; to register the first shared bill.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {expensesByMonth.map(({ monthLabel, items }) => (
+                  <div key={monthLabel}>
+                    <div className="month-section-header">{monthLabel}</div>
+                    <div className="glass-card" style={styles.expenseCardContainer}>
+                      {items.map((expense, index) => {
+                        const payerName = members.find((m) => m.id === expense.payerId)?.name || "Group member";
+                        const isCurrentUserPayer = expense.payerId === currentUser.userId;
+                        const mySplit = expense.splits.find((s) => s.userId === currentUser.userId);
+                        const catColor = CATEGORY_COLORS[expense.category] || "#64748b";
 
-                          return (
-                            <div
-                              key={expense.id}
-                              className="expense-row-item"
-                              style={{
-                                ...styles.expenseRow,
-                                borderBottom: index < items.length - 1 ? "1px solid var(--border-light)" : "none",
-                              }}
-                              onClick={() => openEditModal(expense)}
-                              role="button"
-                              tabIndex={0}
-                              title="Click to edit expense"
-                            >
-                              <div style={styles.expenseRowLeft}>
-                                {/* Date badge */}
-                                <div style={styles.expenseDateBadge}>
-                                  <span style={styles.dateMonth}>
-                                    {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
-                                  </span>
-                                  <span style={styles.dateDay}>
-                                    {new Date(expense.date).toLocaleDateString("en-US", { day: "2-digit", timeZone: "UTC" })}
-                                  </span>
-                                </div>
-
-                                {/* Category icon */}
-                                <div
-                                  style={{
-                                    ...styles.categoryIconBadge,
-                                    backgroundColor: `${catColor}15`,
-                                    color: catColor,
-                                    border: `1px solid ${catColor}35`,
-                                  }}
-                                  title={expense.category}
-                                >
-                                  {getCategoryIcon(expense.category, 16)}
-                                </div>
-
-                                {/* Description & Payer */}
-                                <div style={styles.expenseTitleCol}>
-                                  <span style={styles.expenseTitle}>{expense.description}</span>
-                                  <span style={styles.expensePayerText}>
-                                    {isCurrentUserPayer ? "You" : payerName} paid {formatCurrency(expense.amount, expense.currency)}
-                                  </span>
-                                </div>
+                        return (
+                          <div
+                            key={expense.id}
+                            className="expense-row-item"
+                            style={{
+                              ...styles.expenseRow,
+                              borderBottom: index < items.length - 1 ? "1px solid var(--border-light)" : "none",
+                            }}
+                            onClick={() => openEditModal(expense)}
+                            role="button"
+                            tabIndex={0}
+                            title="Click to edit expense"
+                          >
+                            <div style={styles.expenseRowLeft}>
+                              {/* Date badge */}
+                              <div style={styles.expenseDateBadge}>
+                                <span style={styles.dateMonth}>
+                                  {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
+                                </span>
+                                <span style={styles.dateDay}>
+                                  {new Date(expense.date).toLocaleDateString("en-US", { day: "2-digit", timeZone: "UTC" })}
+                                </span>
                               </div>
 
-                              {/* Amount and split status */}
-                              <div style={styles.expenseRowRight}>
-                                {mySplit ? (
-                                  isCurrentUserPayer ? (
-                                    <>
-                                      <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "var(--owed)" }}>
-                                        you lent
-                                      </span>
-                                      <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--owed)" }}>
-                                        {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#f59e0b" }}>
-                                        you borrowed
-                                      </span>
-                                      <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#f59e0b" }}>
-                                        {formatCurrency(mySplit.amount, group.defaultCurrency)}
-                                      </span>
-                                    </>
-                                  )
-                                ) : (
-                                  <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>not involved</span>
-                                )}
+                              {/* Category icon */}
+                              <div
+                                style={{
+                                  ...styles.categoryIconBadge,
+                                  backgroundColor: `${catColor}15`,
+                                  color: catColor,
+                                  border: `1px solid ${catColor}35`,
+                                }}
+                                title={expense.category}
+                              >
+                                {getCategoryIcon(expense.category, 16)}
+                              </div>
+
+                              {/* Description & Payer */}
+                              <div style={styles.expenseTitleCol}>
+                                <span style={styles.expenseTitle}>{expense.description}</span>
+                                <span style={styles.expensePayerText}>
+                                  {isCurrentUserPayer ? "You" : payerName} paid {formatCurrency(expense.amount, expense.currency)}
+                                </span>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Sidebar with Quick balance breakdown */}
-            <div style={styles.sidebarColumn}>
-              <div className="glass-card" style={styles.sidebarCard}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                  <h3 style={{ ...styles.sidebarTitle, marginBottom: 0 }}>
-                    <Users size={16} color="var(--primary)" />
-                    Group Members
-                  </h3>
-                  <div style={{ display: "flex", gap: "0.4rem" }}>
-                    <button
-                      type="button"
-                      onClick={handleCopyInviteLink}
-                      style={{
-                        background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "var(--surface-hover)",
-                        border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid var(--border-light)",
-                        color: inviteCopied ? "var(--owed)" : "var(--text-muted)",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.25rem",
-                        transition: "all 0.2s ease"
-                      }}
-                    >
-                      <Share2 size={12} />
-                      {inviteCopied ? "Copied!" : "Invite Link"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddMemberModal(true)}
-                      style={{
-                        background: "rgba(16, 185, 129, 0.15)",
-                        border: "1px solid rgba(16, 185, 129, 0.3)",
-                        color: "var(--primary)",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "0.375rem",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.25rem",
-                        transition: "all 0.2s ease"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "rgba(16, 185, 129, 0.25)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "rgba(16, 185, 129, 0.15)";
-                      }}
-                    >
-                      <PlusCircle size={12} />
-                      Add
-                    </button>
+                            {/* Amount and split status */}
+                            <div style={styles.expenseRowRight}>
+                              {mySplit ? (
+                                isCurrentUserPayer ? (
+                                  <>
+                                    <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "var(--owed)" }}>
+                                      you lent
+                                    </span>
+                                    <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--owed)" }}>
+                                      {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span style={{ fontSize: "0.74rem", fontWeight: 600, color: "#f59e0b" }}>
+                                      you borrowed
+                                    </span>
+                                    <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#f59e0b" }}>
+                                      {formatCurrency(mySplit.amount, group.defaultCurrency)}
+                                    </span>
+                                  </>
+                                )
+                              ) : (
+                                <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>not involved</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <div style={styles.memberBalancesList}>
-                  {members.map((member) => {
-                    return (
-                      <div key={member.id} style={styles.sidebarMemberItem}>
-                        <div style={styles.sidebarMemberLeft}>
-                          <div style={styles.sidebarAvatar}>
-                            {member.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div style={styles.sidebarMemberName}>{member.name}</div>
-                            <div style={styles.sidebarMemberUsername}>@{member.username}</div>
-                          </div>
-                        </div>
-                        
-                        <div style={styles.sidebarMemberRight}>
-                          {balances.currencies.map((curr) => {
-                            const bal = balances.balancesByCurrency[curr]?.[member.id]?.netBalance || 0;
-                            if (bal === 0) return null;
-                            const isOwed = bal > 0;
-                            return (
-                              <div key={curr} style={{ 
-                                color: isOwed ? "var(--owed)" : "var(--owes)", 
-                                fontWeight: 600, 
-                                fontSize: "0.85rem",
-                                textAlign: "right"
-                              }}>
-                                {isOwed ? "+" : ""}{formatCurrency(bal, curr)}
-                              </div>
-                            );
-                          })}
-                          {balances.currencies.every((curr) => (balances.balancesByCurrency[curr]?.[member.id]?.netBalance || 0) === 0) && (
-                            <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>settled up</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -1735,10 +1633,13 @@ export default function GroupDetailsClient({
             }
           }}
         >
-          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+          <div className="glass-card modal-card-responsive" style={{ ...styles.modalCard, maxWidth: "520px" }}>
             <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>Add Members to Group</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <Users size={20} color="var(--primary)" />
+                <h2 style={styles.modalTitle}>Group Members ({members.length})</h2>
+              </div>
               <button 
                 type="button"
                 onClick={() => { 
@@ -1755,134 +1656,255 @@ export default function GroupDetailsClient({
               </button>
             </div>
 
-            {addMemberError && <div style={styles.modalErrorBox}>{addMemberError}</div>}
+            {/* Quick action: Copy Invite Link */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0.75rem 1rem",
+              background: "var(--surface-hover)",
+              borderRadius: "10px",
+              border: "1px solid var(--border-light)",
+              marginBottom: "1rem"
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>Invite Friends</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Share link for anyone to join this group</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyInviteLink}
+                style={{
+                  background: inviteCopied ? "rgba(16, 185, 129, 0.15)" : "var(--primary)",
+                  border: inviteCopied ? "1px solid rgba(16, 185, 129, 0.3)" : "none",
+                  color: inviteCopied ? "var(--owed)" : "#ffffff",
+                  padding: "0.5rem 0.85rem",
+                  borderRadius: "8px",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  transition: "all 0.2s ease",
+                  flexShrink: 0,
+                }}
+              >
+                {inviteCopied ? <Check size={14} /> : <Share2 size={14} />}
+                <span>{inviteCopied ? "Copied!" : "Copy Link"}</span>
+              </button>
+            </div>
 
-            <form onSubmit={handleAddMembersSubmit} style={styles.modalForm}>
-              <div style={styles.modalFormGroup}>
-                <label className="form-label">Search by name or username</label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type="text"
-                    placeholder="Type at least 2 characters…"
-                    value={memberSearchQuery}
-                    onChange={(e) => setMemberSearchQuery(e.target.value)}
-                    className="form-input"
-                    style={{ paddingRight: "2.5rem" }}
-                  />
-                  {memberSearching && (
-                    <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.75rem", color: "var(--primary)" }}>
-                      searching…
-                    </span>
-                  )}
-                  {memberSearchQuery.trim().length >= 2 && !memberSearching && memberSearchResults.length === 0 && (
-                    <div style={{
-                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                      background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
-                      padding: "0.6rem 0.875rem", fontSize: "0.82rem", color: "var(--text-muted)", zIndex: 20,
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                    }}>
-                      No users found matching &quot;{memberSearchQuery}&quot; — they may already be in this group.
-                    </div>
-                  )}
-                  {memberSearchResults.length > 0 && (
-                    <div style={{
-                      position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                      background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
-                      maxHeight: "180px", overflowY: "auto", zIndex: 20,
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    }}>
-                      {memberSearchResults.map((user) => (
+            {/* Members List with Balances */}
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label className="form-label" style={{ marginBottom: "0.5rem", display: "block" }}>
+                Current Members
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "200px", overflowY: "auto", paddingRight: "0.25rem" }}>
+                {members.map((member) => {
+                  const isCurrent = member.id === currentUser.userId;
+                  return (
+                    <div
+                      key={member.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "0.6rem 0.85rem",
+                        background: isCurrent ? "rgba(16, 185, 129, 0.05)" : "var(--surface-hover)",
+                        border: isCurrent ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid var(--border-light)",
+                        borderRadius: "10px",
+                        gap: "0.6rem",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", minWidth: 0 }}>
                         <div
-                          key={user.id}
-                          onClick={() => {
-                            setMembersToAdd((prev) => [...prev, user]);
-                            setMemberSearchQuery("");
-                            setMemberSearchResults([]);
-                          }}
                           style={{
-                            padding: "0.6rem 0.75rem",
-                            cursor: "pointer",
-                            fontSize: "0.85rem",
-                            borderBottom: "1px solid var(--border-light)",
-                            minHeight: "42px",
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
+                            color: "#fff",
                             display: "flex",
-                            alignItems: "center"
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            fontSize: "0.85rem",
+                            flexShrink: 0,
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-hover)"}
-                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                         >
-                          <strong>{user.name}</strong> (@{user.username})
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {member.name} {isCurrent && <span style={{ fontSize: "0.72rem", color: "var(--primary)", fontWeight: 700 }}>(You)</span>}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>@{member.username}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        {balances.currencies.map((curr) => {
+                          const bal = balances.balancesByCurrency[curr]?.[member.id]?.netBalance || 0;
+                          if (bal === 0) return null;
+                          const isOwed = bal > 0;
+                          return (
+                            <div
+                              key={curr}
+                              style={{
+                                color: isOwed ? "var(--owed)" : "var(--owes)",
+                                fontWeight: 700,
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {isOwed ? "+" : ""}{formatCurrency(bal, curr)}
+                            </div>
+                          );
+                        })}
+                        {balances.currencies.every((curr) => (balances.balancesByCurrency[curr]?.[member.id]?.netBalance || 0) === 0) && (
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>settled</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Add More Members Section */}
+            <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "1rem" }}>
+              <label className="form-label" style={{ marginBottom: "0.4rem", display: "block" }}>
+                Add New Member
+              </label>
+
+              {addMemberError && <div style={styles.modalErrorBox}>{addMemberError}</div>}
+
+              <form onSubmit={handleAddMembersSubmit} style={styles.modalForm}>
+                <div style={styles.modalFormGroup}>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      placeholder="Search registered username…"
+                      value={memberSearchQuery}
+                      onChange={(e) => setMemberSearchQuery(e.target.value)}
+                      className="form-input"
+                      style={{ paddingRight: "2.5rem" }}
+                    />
+                    {memberSearching && (
+                      <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", fontSize: "0.75rem", color: "var(--primary)" }}>
+                        searching…
+                      </span>
+                    )}
+                    {memberSearchQuery.trim().length >= 2 && !memberSearching && memberSearchResults.length === 0 && (
+                      <div style={{
+                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                        background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
+                        padding: "0.6rem 0.875rem", fontSize: "0.82rem", color: "var(--text-muted)", zIndex: 20,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                      }}>
+                        No users found matching &quot;{memberSearchQuery}&quot; — they may already be in this group.
+                      </div>
+                    )}
+                    {memberSearchResults.length > 0 && (
+                      <div style={{
+                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                        background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
+                        maxHeight: "180px", overflowY: "auto", zIndex: 20,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                      }}>
+                        {memberSearchResults.map((user) => (
+                          <div
+                            key={user.id}
+                            onClick={() => {
+                              setMembersToAdd((prev) => [...prev, user]);
+                              setMemberSearchQuery("");
+                              setMemberSearchResults([]);
+                            }}
+                            style={{
+                              padding: "0.6rem 0.75rem",
+                              cursor: "pointer",
+                              fontSize: "0.85rem",
+                              borderBottom: "1px solid var(--border-light)",
+                              minHeight: "42px",
+                              display: "flex",
+                              alignItems: "center"
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-hover)"}
+                            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                          >
+                            <strong>{user.name}</strong> (@{user.username})
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {membersToAdd.length > 0 && (
+                  <div style={styles.modalFormGroup}>
+                    <label className="form-label">Selected to add:</label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                      {membersToAdd.map((m) => (
+                        <div
+                          key={m.id}
+                          style={{
+                            background: "rgba(16, 185, 129, 0.15)",
+                            border: "1px solid rgba(16, 185, 129, 0.3)",
+                            color: "var(--primary)",
+                            padding: "0.3rem 0.65rem",
+                            borderRadius: "9999px",
+                            fontSize: "0.82rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.35rem"
+                          }}
+                        >
+                          {m.name}
+                          <button
+                            type="button"
+                            onClick={() => setMembersToAdd((prev) => prev.filter((item) => item.id !== m.id))}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "var(--primary)",
+                              cursor: "pointer",
+                              padding: 0,
+                              display: "flex",
+                              alignItems: "center"
+                            }}
+                            title={`Remove ${m.name}`}
+                          >
+                            <X size={14} />
+                          </button>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {membersToAdd.length > 0 && (
-                <div style={styles.modalFormGroup}>
-                  <label className="form-label">Members to Add:</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                    {membersToAdd.map((m) => (
-                      <div
-                        key={m.id}
-                        style={{
-                          background: "rgba(16, 185, 129, 0.15)",
-                          border: "1px solid rgba(16, 185, 129, 0.3)",
-                          color: "var(--primary)",
-                          padding: "0.3rem 0.65rem",
-                          borderRadius: "9999px",
-                          fontSize: "0.82rem",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.35rem"
-                        }}
-                      >
-                        {m.name}
-                        <button
-                          type="button"
-                          onClick={() => setMembersToAdd((prev) => prev.filter((item) => item.id !== m.id))}
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            color: "var(--primary)",
-                            cursor: "pointer",
-                            padding: 0,
-                            display: "flex",
-                            alignItems: "center"
-                          }}
-                          title={`Remove ${m.name}`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="modal-actions-responsive" style={styles.modalActions}>
-                <button 
-                  type="button" 
-                  onClick={() => { 
-                    setShowAddMemberModal(false); 
-                    setMemberSearchQuery("");
-                    setMembersToAdd([]);
-                    setAddMemberError(null); 
-                  }} 
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={addMemberLoading || membersToAdd.length === 0} 
-                  className="btn btn-primary"
-                >
-                  {addMemberLoading ? "Adding..." : "Add Members"}
-                </button>
-              </div>
-            </form>
+                <div className="modal-actions-responsive" style={styles.modalActions}>
+                  <button 
+                    type="button" 
+                    onClick={() => { 
+                      setShowAddMemberModal(false); 
+                      setMemberSearchQuery("");
+                      setMembersToAdd([]);
+                      setAddMemberError(null); 
+                    }} 
+                    className="btn btn-secondary"
+                  >
+                    Close
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={addMemberLoading || membersToAdd.length === 0} 
+                    className="btn btn-primary"
+                  >
+                    {addMemberLoading ? "Adding..." : "Add to Group"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>,
         document.body

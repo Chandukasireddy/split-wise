@@ -3,12 +3,12 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Activity } from "lucide-react";
+import { Users, UserCheck, Activity } from "lucide-react";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/friends",   label: "Friends",   icon: Users },
-  { href: "/activities",label: "Activity",  icon: Activity },
+  { href: "/dashboard", label: "Groups",   icon: Users },
+  { href: "/friends",   label: "Friends",  icon: UserCheck },
+  { href: "/activities",label: "Activity", icon: Activity },
 ];
 
 export default function NavLinks() {
