@@ -562,29 +562,30 @@ p {
   }
 }
 
-/* Mobile expense item — hide wide columns, show stacked layout */
-@media (max-width: 768px) {
-  .expense-amount-col,
-  .expense-share-col {
-    display: none !important;
-  }
-  .expense-item {
-    flex-wrap: wrap;
-    gap: 0.5rem !important;
-    padding: 0.75rem !important;
-  }
-  .expense-details {
-    min-width: 0;
-  }
-  .expense-action-btns {
-    margin-left: auto;
-  }
-  .expense-mobile-meta {
-    display: flex !important;
-  }
+/* Modern unified expense rows */
+.expense-row-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.15rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  gap: 0.75rem;
 }
-.expense-mobile-meta {
-  display: none;
+
+.expense-row-item:hover {
+  background-color: var(--surface-hover);
+}
+
+.expense-row-item:active {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 768px) {
+  .expense-row-item {
+    padding: 0.75rem 0.85rem;
+    gap: 0.5rem;
+  }
 }
 
 /* Horizontal scrolling tabs on mobile */

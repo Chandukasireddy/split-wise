@@ -13,7 +13,6 @@ import {
   ArrowLeft,
   DollarSign,
   Trash2,
-  Pencil,
   Settings,
   PieChart as ChartIcon,
   FileDown,
@@ -22,7 +21,12 @@ import {
   X,
   PlusCircle,
   PiggyBank,
-  Share2
+  Share2,
+  Utensils,
+  Plane,
+  Zap,
+  Film,
+  Receipt,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -87,11 +91,27 @@ const CURRENCIES = [
 ];
 const CATEGORY_COLORS: Record<string, string> = {
   Food: "#10b981",          // Emerald
-  Travel: "#10b981",        // Indigo
+  Travel: "#3b82f6",        // Blue
   Utilities: "#06b6d4",     // Cyan
   Entertainment: "#f43f5e",  // Rose
   General: "#f59e0b",       // Amber
 };
+
+function getCategoryIcon(category: string, size = 15) {
+  switch (category) {
+    case "Food":
+      return <Utensils size={size} />;
+    case "Travel":
+      return <Plane size={size} />;
+    case "Utilities":
+      return <Zap size={size} />;
+    case "Entertainment":
+      return <Film size={size} />;
+    case "General":
+    default:
+      return <Receipt size={size} />;
+  }
+}
 
 export default function GroupDetailsClient({
   currentUser,
@@ -316,6 +336,8 @@ export default function GroupDetailsClient({
     if (confirm("Are you sure you want to delete this expense?")) {
       const res = await deleteExpense(id);
       if (res.success) {
+        setShowExpenseModal(false);
+        setEditingExpenseId(null);
         router.refresh();
       } else {
         alert(res.error || "Failed to delete expense");
@@ -690,106 +712,84 @@ export default function GroupDetailsClient({
                   <p>Click &quot;Add Expense&quot; to register the first shared bill.</p>
                 </div>
               ) : (
-                <div style={styles.expenseList}>
-                  {group.expenses.map((expense) => {
+                <div className="glass-card" style={styles.expenseCardContainer}>
+                  {group.expenses.map((expense, index) => {
                     const payerName = members.find((m) => m.id === expense.payerId)?.name || "Group member";
                     const isCurrentUserPayer = expense.payerId === currentUser.userId;
                     
                     // Find current user's split share
                     const mySplit = expense.splits.find((s) => s.userId === currentUser.userId);
-                    
+                    const catColor = CATEGORY_COLORS[expense.category] || "#64748b";
+
                     return (
-                      <div key={expense.id} className="glass-card expense-item" style={styles.expenseItem}>
-                        <div style={styles.expenseDateBadge}>
-                          <span style={styles.dateMonth}>
-                            {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
-                          </span>
-                          <span style={styles.dateDay}>
-                            {new Date(expense.date).toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
-                          </span>
-                        </div>
-
-                        <div className="expense-details" style={styles.expenseDetails}>
-                          <h3 style={styles.expenseDesc}>{expense.description}</h3>
-                          <div style={styles.expenseMeta}>
-                            <span className="badge" style={{
-                              backgroundColor: `${CATEGORY_COLORS[expense.category]}15`,
-                              color: CATEGORY_COLORS[expense.category],
-                              borderColor: `${CATEGORY_COLORS[expense.category]}40`,
-                              borderWidth: "1px",
-                              borderStyle: "solid",
-                              padding: "0.1rem 0.5rem"
-                            }}>
-                              {expense.category}
+                      <div
+                        key={expense.id}
+                        className="expense-row-item"
+                        style={{
+                          ...styles.expenseRow,
+                          borderBottom: index < group.expenses.length - 1 ? "1px solid var(--border-light)" : "none",
+                        }}
+                        onClick={() => openEditModal(expense)}
+                        role="button"
+                        tabIndex={0}
+                        title="Click to edit expense"
+                      >
+                        <div style={styles.expenseRowLeft}>
+                          {/* Date badge */}
+                          <div style={styles.expenseDateBadge}>
+                            <span style={styles.dateMonth}>
+                              {new Date(expense.date).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}
                             </span>
-                            <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                              paid by <strong>{payerName}</strong>
+                            <span style={styles.dateDay}>
+                              {new Date(expense.date).toLocaleDateString("en-US", { day: "numeric", timeZone: "UTC" })}
                             </span>
                           </div>
-                          {/* Mobile-only: show amount + share inline */}
-                          <div className="expense-mobile-meta" style={{ gap: "0.75rem", marginTop: "0.15rem", alignItems: "center" }}>
-                            <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                              {formatCurrency(expense.amount, expense.currency)}
+
+                          {/* Category icon */}
+                          <div
+                            style={{
+                              ...styles.categoryIconBadge,
+                              backgroundColor: `${catColor}15`,
+                              color: catColor,
+                              border: `1px solid ${catColor}35`,
+                            }}
+                            title={expense.category}
+                          >
+                            {getCategoryIcon(expense.category, 16)}
+                          </div>
+
+                          {/* Description & Payer */}
+                          <div style={styles.expenseTitleCol}>
+                            <span style={styles.expenseTitle}>{expense.description}</span>
+                            <span style={styles.expensePayerText}>
+                              paid by <strong style={{ color: "var(--text-primary)" }}>{payerName}</strong>
                             </span>
-                            {mySplit && (
-                              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: isCurrentUserPayer ? "var(--owed)" : "var(--owes)" }}>
-                                {isCurrentUserPayer
-                                  ? `you lent ${formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}`
-                                  : `you owe ${formatCurrency(mySplit.amount, group.defaultCurrency)}`}
-                              </span>
-                            )}
                           </div>
                         </div>
 
-                        <div className="expense-amount-col" style={styles.expenseAmountCol}>
-                          <span style={styles.expenseTotalLabel}>Amount</span>
-                          <span style={styles.expenseTotalValue}>
+                        {/* Amount and split information */}
+                        <div style={styles.expenseRowRight}>
+                          <span style={styles.expenseAmountText}>
                             {formatCurrency(expense.amount, expense.currency)}
-                            {expense.conversionRate !== 1.0 && (
-                              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
-                                ({formatCurrency(expense.convertedAmount, group.defaultCurrency)})
-                              </div>
-                            )}
                           </span>
-                        </div>
-
-                        <div className="expense-share-col" style={styles.expenseShareCol}>
+                          {expense.conversionRate !== 1.0 && (
+                            <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                              ({formatCurrency(expense.convertedAmount, group.defaultCurrency)})
+                            </span>
+                          )}
                           {mySplit ? (
                             isCurrentUserPayer ? (
-                              <>
-                                <span style={{ ...styles.expenseTotalLabel, color: "var(--owed)" }}>you lent</span>
-                                <span style={{ ...styles.expenseTotalValue, color: "var(--owed)" }}>
-                                  {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
-                                </span>
-                              </>
+                              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--owed)" }}>
+                                you lent {formatCurrency(expense.convertedAmount - mySplit.amount, group.defaultCurrency)}
+                              </span>
                             ) : (
-                              <>
-                                <span style={{ ...styles.expenseTotalLabel, color: "var(--owes)" }}>you owe</span>
-                                <span style={{ ...styles.expenseTotalValue, color: "var(--owes)" }}>
-                                  {formatCurrency(mySplit.amount, group.defaultCurrency)}
-                                </span>
-                              </>
+                              <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--owes)" }}>
+                                you owe {formatCurrency(mySplit.amount, group.defaultCurrency)}
+                              </span>
                             )
                           ) : (
-                            <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>not involved</span>
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>not involved</span>
                           )}
-                        </div>
-
-                        <div className="expense-action-btns" style={{ display: "flex", gap: "0.25rem" }}>
-                          <button
-                            onClick={() => openEditModal(expense)}
-                            style={styles.editBtn}
-                            title="Edit expense"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            style={styles.deleteBtn}
-                            title="Delete expense"
-                          >
-                            <Trash2 size={15} />
-                          </button>
                         </div>
                       </div>
                     );
@@ -1337,6 +1337,19 @@ export default function GroupDetailsClient({
               </div>
 
               <div className="modal-actions-responsive" style={styles.modalActions}>
+                {editingExpenseId && (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleDeleteExpense(editingExpenseId)}
+                    className="btn"
+                    style={styles.deleteExpenseModalBtn}
+                    title="Delete this expense"
+                  >
+                    <Trash2 size={15} />
+                    Delete Expense
+                  </button>
+                )}
                 <button type="button" onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -1946,19 +1959,36 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: "0.85rem",
   },
-  expenseItem: {
+  expenseCardContainer: {
+    padding: 0,
+    overflow: "hidden",
+    border: "1px solid var(--border-light)",
+    borderRadius: "14px",
+    background: "#ffffff",
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+  },
+  expenseRow: {
     display: "flex",
     alignItems: "center",
-    padding: "1rem",
-    gap: "1rem",
-    transition: "transform 0.2s, border-color 0.2s",
+    justifyContent: "space-between",
+    padding: "0.85rem 1.15rem",
+    cursor: "pointer",
+    transition: "background-color 0.15s ease",
+    gap: "0.75rem",
+  },
+  expenseRowLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.85rem",
+    minWidth: 0,
+    flex: 1,
   },
   expenseDateBadge: {
-    width: "48px",
-    height: "48px",
+    width: "42px",
+    height: "42px",
     background: "var(--surface-hover)",
     border: "1px solid var(--border-light)",
-    borderRadius: "10px",
+    borderRadius: "9px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -1966,82 +1996,70 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   dateMonth: {
-    fontSize: "0.65rem",
+    fontSize: "0.62rem",
     textTransform: "uppercase",
     fontWeight: 700,
     color: "var(--text-muted)",
-  },
-  dateDay: {
-    fontSize: "1.1rem",
-    fontWeight: 700,
-    color: "var(--text-primary)",
     lineHeight: 1,
   },
-  expenseDetails: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.25rem",
-  },
-  expenseDesc: {
+  dateDay: {
     fontSize: "1rem",
-    fontWeight: 600,
+    fontWeight: 700,
     color: "var(--text-primary)",
+    lineHeight: 1.1,
+    marginTop: "1px",
   },
-  expenseMeta: {
+  categoryIconBadge: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "10px",
     display: "flex",
     alignItems: "center",
-    gap: "0.75rem",
+    justifyContent: "center",
+    flexShrink: 0,
   },
-  expenseAmountCol: {
+  expenseTitleCol: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "flex-end",
-    width: "100px",
+    gap: "0.15rem",
+    minWidth: 0,
   },
-  expenseShareCol: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-end",
-    width: "120px",
-    paddingRight: "0.5rem",
-  },
-  expenseTotalLabel: {
-    fontSize: "0.75rem",
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-  },
-  expenseTotalValue: {
+  expenseTitle: {
     fontSize: "0.95rem",
     fontWeight: 600,
+    color: "var(--text-primary)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
-  editBtn: {
-    background: "transparent",
-    border: "none",
+  expensePayerText: {
+    fontSize: "0.78rem",
     color: "var(--text-muted)",
-    cursor: "pointer",
-    padding: "0.45rem",
-    minWidth: "38px",
-    minHeight: "38px",
-    borderRadius: "8px",
+  },
+  expenseRowRight: {
     display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: "0.15rem",
+    flexShrink: 0,
+    textAlign: "right",
+  },
+  expenseAmountText: {
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    color: "var(--text-primary)",
+  },
+  deleteExpenseModalBtn: {
+    display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "color 0.2s, background-color 0.2s",
-  },
-  deleteBtn: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-muted)",
+    gap: "0.4rem",
+    background: "rgba(244, 63, 94, 0.08)",
+    border: "1px solid rgba(244, 63, 94, 0.25)",
+    color: "#f43f5e",
+    fontWeight: 600,
+    marginRight: "auto",
     cursor: "pointer",
-    padding: "0.45rem",
-    minWidth: "38px",
-    minHeight: "38px",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "color 0.2s, background-color 0.2s",
   },
   deleteGroupBtn: {
     display: "inline-flex",
