@@ -108,7 +108,6 @@ export default function PWAInstallButton() {
     if (isInstallable && !isInstalled && isMobile) {
       const dismissed = localStorage.getItem("pwa-prompt-dismissed");
       if (dismissed !== "true") {
-        setShowBanner(true);
         const timer = setTimeout(() => {
           setShowBanner(true);
         }, 0);
