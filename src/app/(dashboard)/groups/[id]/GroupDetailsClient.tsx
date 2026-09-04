@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
 import { settleUp } from "@/app/actions/settleActions";
@@ -156,6 +157,31 @@ export default function GroupDetailsClient({
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
   const memberSearchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
+
+  // Client-side mount flag for React Portals (SSR safe without setState in effect)
+  const mounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  // Lock background body scroll when any modal is open
+  const isAnyModalOpen =
+    showExpenseModal ||
+    showSettleModal ||
+    showGroupSettingsModal ||
+    showDeleteGroupModal ||
+    showAddMemberModal;
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isAnyModalOpen]);
 
   // IMPORTANT: memoize so `members` keeps a stable reference across re-renders.
   // It is a dependency of the effects below; a fresh array every render made
@@ -1072,9 +1098,21 @@ export default function GroupDetailsClient({
       {/* ----------------- MODALS ----------------- */}
 
       {/* Add / Edit Expense Modal */}
-      {showExpenseModal && (
-        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+      {mounted && showExpenseModal && createPortal(
+        <div 
+          className="modal-overlay-responsive" 
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowExpenseModal(false);
+              setEditingExpenseId(null);
+              setExpenseDate(new Date().toISOString().split("T")[0]);
+              setFormError(null);
+            }
+          }}
+        >
           <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+            <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>{editingExpenseId ? "Edit Expense" : "Add an Expense"}</h2>
               <button 
@@ -1308,13 +1346,25 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Settle Up Modal */}
-      {showSettleModal && (
-        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+      {mounted && showSettleModal && createPortal(
+        <div 
+          className="modal-overlay-responsive" 
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSettleModal(false);
+              setSettleDate(new Date().toISOString().split("T")[0]);
+              setFormError(null);
+            }
+          }}
+        >
           <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+            <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Record a Settlement</h2>
               <button 
@@ -1416,13 +1466,24 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Group Settings Modal */}
-      {showGroupSettingsModal && (
-        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+      {mounted && showGroupSettingsModal && createPortal(
+        <div 
+          className="modal-overlay-responsive" 
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowGroupSettingsModal(false);
+              setSettingsError(null);
+            }
+          }}
+        >
           <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+            <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Group Settings</h2>
               <button 
@@ -1490,13 +1551,23 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Group Confirmation Modal */}
-      {showDeleteGroupModal && (
-        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+      {mounted && showDeleteGroupModal && createPortal(
+        <div 
+          className="modal-overlay-responsive" 
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteGroupModal(false);
+            }
+          }}
+        >
           <div className="glass-card modal-card-responsive" style={{ ...styles.modalCard, maxWidth: "440px" }}>
+            <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
               <h2 style={{ ...styles.modalTitle, color: "#f43f5e" }}>Delete Group</h2>
               <button 
@@ -1527,13 +1598,26 @@ export default function GroupDetailsClient({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Add Member Modal */}
-      {showAddMemberModal && (
-        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+      {mounted && showAddMemberModal && createPortal(
+        <div 
+          className="modal-overlay-responsive" 
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddMemberModal(false);
+              setMemberSearchQuery("");
+              setMembersToAdd([]);
+              setAddMemberError(null);
+            }
+          }}
+        >
           <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+            <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Add Members to Group</h2>
               <button 
@@ -1681,7 +1765,8 @@ export default function GroupDetailsClient({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

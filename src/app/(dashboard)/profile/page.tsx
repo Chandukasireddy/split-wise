@@ -221,7 +221,7 @@ const styles: Record<string, React.CSSProperties> = {
   infoCard: { padding: "1.25rem" },
   cardTitle: { fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.25rem" },
   logoutBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.55rem 1.25rem", fontSize: "0.875rem", fontWeight: 600, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", borderRadius: "10px", cursor: "pointer" },
-  overlay: { position: "fixed", inset: 0, background: "rgba(3,7,18,0.6)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, padding: "0" },
+  overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(5px)", WebkitBackdropFilter: "blur(5px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, padding: "0" },
   modal: { width: "100%", maxWidth: "480px", borderRadius: "20px 20px 0 0", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem", background: "#fff", maxHeight: "90vh", overflowY: "auto" },
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   modalTitle: { fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" },
