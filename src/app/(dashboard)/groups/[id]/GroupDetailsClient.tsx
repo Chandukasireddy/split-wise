@@ -1073,11 +1073,17 @@ export default function GroupDetailsClient({
 
       {/* Add / Edit Expense Modal */}
       {showExpenseModal && (
-        <div style={styles.modalOverlay}>
-          <div className="glass-card" style={styles.modalCard}>
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>{editingExpenseId ? "Edit Expense" : "Add an Expense"}</h2>
-              <button onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} style={styles.modalCloseBtn}>
+              <button 
+                type="button" 
+                onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} 
+                className="modal-close-btn-responsive" 
+                style={styles.modalCloseBtn}
+                title="Close dialog"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -1085,7 +1091,7 @@ export default function GroupDetailsClient({
             {formError && <div style={styles.modalErrorBox}>{formError}</div>}
 
             <form onSubmit={editingExpenseId ? handleEditExpenseSubmit : handleAddExpenseSubmit} style={styles.modalForm}>
-              <div style={styles.modalFormRow}>
+              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                 <div style={{ flex: 2 }}>
                   <label htmlFor="expDesc" className="form-label">Description *</label>
                   <input
@@ -1113,7 +1119,7 @@ export default function GroupDetailsClient({
                 </div>
               </div>
 
-              <div style={styles.modalFormRow}>
+              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                 <div style={{ flex: 1.1 }}>
                   <label htmlFor="expDate" className="form-label">Date *</label>
                   <input
@@ -1153,7 +1159,7 @@ export default function GroupDetailsClient({
               </div>
 
               {expenseCurrency !== group.defaultCurrency && (
-                <div style={styles.modalFormRow}>
+                <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                   <div style={{ flex: 1 }}>
                     <label htmlFor="expConvRate" className="form-label">
                       Conversion Rate ({expenseCurrency} to {group.defaultCurrency}) *
@@ -1177,7 +1183,7 @@ export default function GroupDetailsClient({
                 </div>
               )}
 
-              <div style={styles.modalFormRow}>
+              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                 <div style={{ flex: 1 }}>
                   <label htmlFor="expPayer" className="form-label">Paid By</label>
                   <select
@@ -1292,7 +1298,7 @@ export default function GroupDetailsClient({
                 </div>
               </div>
 
-              <div style={styles.modalActions}>
+              <div className="modal-actions-responsive" style={styles.modalActions}>
                 <button type="button" onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -1307,11 +1313,17 @@ export default function GroupDetailsClient({
 
       {/* Settle Up Modal */}
       {showSettleModal && (
-        <div style={styles.modalOverlay}>
-          <div className="glass-card" style={styles.modalCard}>
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Record a Settlement</h2>
-              <button onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} style={styles.modalCloseBtn}>
+              <button 
+                type="button" 
+                onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} 
+                className="modal-close-btn-responsive" 
+                style={styles.modalCloseBtn}
+                title="Close dialog"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -1319,7 +1331,7 @@ export default function GroupDetailsClient({
             {formError && <div style={styles.modalErrorBox}>{formError}</div>}
 
             <form onSubmit={handleSettleSubmit} style={styles.modalForm}>
-              <div style={styles.modalFormRow}>
+              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                 <div style={{ flex: 1 }}>
                   <label htmlFor="settlePayer" className="form-label">Who Paid</label>
                   <select
@@ -1354,7 +1366,7 @@ export default function GroupDetailsClient({
                 </div>
               </div>
 
-              <div style={styles.modalFormRow}>
+              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                 <div style={{ flex: 1.1 }}>
                   <label htmlFor="settleDate" className="form-label">Date *</label>
                   <input
@@ -1394,7 +1406,7 @@ export default function GroupDetailsClient({
                 </div>
               </div>
 
-              <div style={styles.modalActions}>
+              <div className="modal-actions-responsive" style={styles.modalActions}>
                 <button type="button" onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -1409,11 +1421,17 @@ export default function GroupDetailsClient({
 
       {/* Group Settings Modal */}
       {showGroupSettingsModal && (
-        <div style={styles.modalOverlay}>
-          <div className="glass-card" style={styles.modalCard}>
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Group Settings</h2>
-              <button onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} style={styles.modalCloseBtn}>
+              <button 
+                type="button" 
+                onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} 
+                className="modal-close-btn-responsive" 
+                style={styles.modalCloseBtn}
+                title="Close dialog"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -1462,7 +1480,7 @@ export default function GroupDetailsClient({
                 </span>
               </div>
 
-              <div style={styles.modalActions}>
+              <div className="modal-actions-responsive" style={styles.modalActions}>
                 <button type="button" onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -1477,11 +1495,17 @@ export default function GroupDetailsClient({
 
       {/* Delete Group Confirmation Modal */}
       {showDeleteGroupModal && (
-        <div style={styles.modalOverlay}>
-          <div className="glass-card" style={{ ...styles.modalCard, maxWidth: "420px" }}>
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+          <div className="glass-card modal-card-responsive" style={{ ...styles.modalCard, maxWidth: "440px" }}>
             <div style={styles.modalHeader}>
               <h2 style={{ ...styles.modalTitle, color: "#f43f5e" }}>Delete Group</h2>
-              <button onClick={() => setShowDeleteGroupModal(false)} style={styles.modalCloseBtn}>
+              <button 
+                type="button" 
+                onClick={() => setShowDeleteGroupModal(false)} 
+                className="modal-close-btn-responsive" 
+                style={styles.modalCloseBtn}
+                title="Close dialog"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -1489,11 +1513,12 @@ export default function GroupDetailsClient({
               Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{group.name}</strong>?
               This will permanently remove all expenses, splits, settlements, and member records. This action cannot be undone.
             </p>
-            <div style={styles.modalActions}>
-              <button onClick={() => setShowDeleteGroupModal(false)} className="btn btn-secondary">
+            <div className="modal-actions-responsive" style={styles.modalActions}>
+              <button type="button" onClick={() => setShowDeleteGroupModal(false)} className="btn btn-secondary">
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleDeleteGroup}
                 disabled={deleteGroupLoading}
                 style={styles.deleteGroupConfirmBtn}
@@ -1507,8 +1532,8 @@ export default function GroupDetailsClient({
 
       {/* Add Member Modal */}
       {showAddMemberModal && (
-        <div style={styles.modalOverlay}>
-          <div className="glass-card" style={styles.modalCard}>
+        <div className="modal-overlay-responsive" style={styles.modalOverlay}>
+          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Add Members to Group</h2>
               <button 
@@ -1519,7 +1544,9 @@ export default function GroupDetailsClient({
                   setMembersToAdd([]);
                   setAddMemberError(null); 
                 }} 
+                className="modal-close-btn-responsive"
                 style={styles.modalCloseBtn}
+                title="Close dialog"
               >
                 <X size={20} />
               </button>
@@ -1570,10 +1597,13 @@ export default function GroupDetailsClient({
                             setMemberSearchResults([]);
                           }}
                           style={{
-                            padding: "0.5rem",
+                            padding: "0.6rem 0.75rem",
                             cursor: "pointer",
                             fontSize: "0.85rem",
                             borderBottom: "1px solid var(--border-light)",
+                            minHeight: "42px",
+                            display: "flex",
+                            alignItems: "center"
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-hover)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
@@ -1597,12 +1627,12 @@ export default function GroupDetailsClient({
                           background: "rgba(16, 185, 129, 0.15)",
                           border: "1px solid rgba(16, 185, 129, 0.3)",
                           color: "var(--primary)",
-                          padding: "0.25rem 0.5rem",
+                          padding: "0.3rem 0.65rem",
                           borderRadius: "9999px",
-                          fontSize: "0.8rem",
+                          fontSize: "0.82rem",
                           display: "flex",
                           alignItems: "center",
-                          gap: "0.25rem"
+                          gap: "0.35rem"
                         }}
                       >
                         {m.name}
@@ -1618,6 +1648,7 @@ export default function GroupDetailsClient({
                             display: "flex",
                             alignItems: "center"
                           }}
+                          title={`Remove ${m.name}`}
                         >
                           <X size={14} />
                         </button>
@@ -1627,7 +1658,7 @@ export default function GroupDetailsClient({
                 </div>
               )}
 
-              <div style={styles.modalActions}>
+              <div className="modal-actions-responsive" style={styles.modalActions}>
                 <button 
                   type="button" 
                   onClick={() => { 
@@ -1904,8 +1935,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     color: "var(--text-muted)",
     cursor: "pointer",
-    padding: "0.4rem",
-    borderRadius: "6px",
+    padding: "0.45rem",
+    minWidth: "38px",
+    minHeight: "38px",
+    borderRadius: "8px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -1916,8 +1949,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     color: "var(--text-muted)",
     cursor: "pointer",
-    padding: "0.4rem",
-    borderRadius: "6px",
+    padding: "0.45rem",
+    minWidth: "38px",
+    minHeight: "38px",
+    borderRadius: "8px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -2154,31 +2189,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--text-muted)",
   },
 
-  /* Modals Styles */
-  modalOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(3, 7, 18, 0.8)",
-    backdropFilter: "blur(8px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-    padding: "1rem",
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: "520px",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    padding: "2rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.5rem",
-  },
+  /* Modals Styles - Base layout handled by responsive CSS classes */
+  modalOverlay: {},
+  modalCard: {},
   modalHeader: {
     display: "flex",
     justifyContent: "space-between",
@@ -2188,12 +2201,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.25rem",
     fontWeight: 700,
   },
-  modalCloseBtn: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-secondary)",
-    cursor: "pointer",
-  },
+  modalCloseBtn: {},
   modalErrorBox: {
     backgroundColor: "rgba(244, 63, 94, 0.1)",
     border: "1px solid rgba(244, 63, 94, 0.2)",
@@ -2207,10 +2215,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: "1.25rem",
   },
-  modalFormRow: {
-    display: "flex",
-    gap: "1rem",
-  },
+  modalFormRow: {},
   splitBox: {
     background: "var(--surface-hover)",
     border: "1px solid var(--border-light)",

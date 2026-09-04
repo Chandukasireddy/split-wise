@@ -103,7 +103,7 @@ export default function SignupPage() {
             type="submit"
             disabled={loading}
             className="btn btn-primary"
-            style={{ width: "100%", marginTop: "1rem" }}
+            style={{ width: "100%", marginTop: "1rem", minHeight: "48px", fontSize: "1rem" }}
           >
             <UserPlus size={18} />
             {loading ? "Creating account..." : "Sign Up"}

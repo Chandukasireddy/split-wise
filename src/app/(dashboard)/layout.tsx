@@ -69,7 +69,7 @@ export default async function DashboardLayout({
       </nav>
 
       {/* Main Content Area */}
-      <main className="container" style={styles.mainContent}>
+      <main className="container dashboard-main" style={styles.mainContent}>
         {children}
       </main>
 

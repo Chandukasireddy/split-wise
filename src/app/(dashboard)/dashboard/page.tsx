@@ -229,7 +229,7 @@ const styles: Record<string, React.CSSProperties> = {
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" },
   title: { fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" },
   subtitle: { fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "0.15rem" },
-  createBtn: { padding: "0.5rem 1rem", fontSize: "0.85rem", gap: "0.4rem" },
+  createBtn: { padding: "0.6rem 1.15rem", fontSize: "0.875rem", gap: "0.45rem", minHeight: "42px" },
 
   balCard: { display: "flex", alignItems: "center", gap: "0.875rem", padding: "1rem 1.25rem" },
   balIcon: { padding: "0.5rem", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
@@ -244,7 +244,7 @@ const styles: Record<string, React.CSSProperties> = {
   viewAll: { fontSize: "0.8rem", color: "var(--primary)", fontWeight: 600 },
 
   groupList: { display: "flex", flexDirection: "column", gap: "0.6rem" },
-  groupCard: { display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", padding: "0.875rem 1rem", gap: "0.75rem" },
+  groupCard: { display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", padding: "0.875rem 1rem", gap: "0.75rem", minHeight: "56px" },
   groupLeft: { display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: 0 },
   groupAvatar: {
     width: "38px", height: "38px", borderRadius: "10px", flexShrink: 0,

@@ -360,6 +360,11 @@ const styles: Record<string, React.CSSProperties> = {
   searchBtn: {
     padding: "0.75rem",
     flexShrink: 0,
+    minHeight: "44px",
+    minWidth: "44px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   errorText: {
     color: "var(--owes)",
@@ -389,6 +394,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     padding: "0.5rem",
     borderBottom: "1px solid var(--border-light)",
+    minHeight: "44px",
   },
   resultName: {
     fontSize: "0.85rem",
@@ -400,9 +406,10 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--text-muted)",
   },
   actionBtn: {
-    padding: "0.35rem 0.75rem",
-    fontSize: "0.8rem",
+    padding: "0.45rem 0.85rem",
+    fontSize: "0.82rem",
     gap: "0.25rem",
+    minHeight: "38px",
   },
   addForm: {
     marginTop: "1rem",

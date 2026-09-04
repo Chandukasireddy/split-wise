@@ -29,10 +29,23 @@ export default function BottomNav(_props: BottomNavProps) {
             key={href}
             href={href}
             className="bottom-nav-link"
-            style={active ? { color: "var(--primary)", fontWeight: 700 } : {}}
+            style={active ? { color: "var(--primary)", fontWeight: 700 } : { color: "var(--text-secondary)" }}
           >
-            <Icon size={20} strokeWidth={active ? 2.5 : 1.75} />
-            <span>{label}</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "44px",
+                height: "28px",
+                borderRadius: "14px",
+                backgroundColor: active ? "var(--primary-glow)" : "transparent",
+                transition: "background-color 0.2s ease",
+              }}
+            >
+              <Icon size={20} strokeWidth={active ? 2.5 : 1.75} />
+            </div>
+            <span style={{ fontSize: "0.72rem", letterSpacing: "-0.01em" }}>{label}</span>
           </Link>
         );
       })}

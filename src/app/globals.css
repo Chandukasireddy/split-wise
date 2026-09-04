@@ -116,7 +116,7 @@ p {
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 1rem; /* 16px minimum prevents iOS Safari auto-zoom */
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
@@ -261,7 +261,7 @@ p {
     display: none !important;
   }
   body {
-    padding-bottom: 72px; /* Extra padding for bottom navigation */
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); /* Safe padding for bottom nav */
   }
 }
 
@@ -271,14 +271,15 @@ p {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--surface);
   border-top: 1px solid var(--border-light);
   display: none; /* Hidden on desktop */
   justify-content: space-around;
   align-items: center;
   z-index: 601;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
 }
 
 @media (max-width: 768px) {
@@ -294,14 +295,21 @@ p {
   justify-content: center;
   gap: 3px;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 500;
   background: none;
   border: none;
   cursor: pointer;
   width: 25%;
   height: 100%;
-  transition: color 0.15s ease;
+  min-height: 48px; /* Touch-friendly tap target */
+  padding: 4px 0;
+  transition: color 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-link:active, .bottom-nav-btn:active {
+  transform: scale(0.95);
 }
 
 .bottom-nav-link:hover, .bottom-nav-btn:hover {
@@ -332,6 +340,104 @@ p {
 
 .bottom-nav-center span {
   margin-top: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Responsive Bottom-Sheet Modal System
+   ───────────────────────────────────────────────────────────── */
+.modal-overlay-responsive {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(3, 7, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card-responsive {
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.modal-form-row-responsive {
+  display: flex;
+  gap: 1rem;
+}
+
+.modal-close-btn-responsive {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modal-close-btn-responsive:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.modal-actions-responsive {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .modal-overlay-responsive {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .modal-card-responsive {
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 22px 22px 0 0 !important;
+    padding: 1.25rem 1.15rem calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 1.15rem !important;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18) !important;
+  }
+
+  .modal-form-row-responsive {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  .modal-actions-responsive {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 0.6rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .modal-actions-responsive button {
+    width: 100% !important;
+    padding: 0.85rem !important;
+    font-size: 0.95rem !important;
+  }
 }
 
 /* Responsive Typography - Mobile-First Overrides */
@@ -383,7 +489,8 @@ p {
     padding: 0 0.875rem;
   }
   .glass-card {
-    border-radius: 12px;
+    border-radius: 14px;
+    padding: 1.15rem;
   }
   .mobile-only { display: flex !important; }
   .mobile-hide { display: none !important; }
@@ -449,5 +556,27 @@ p {
   scrollbar-width: none;
 }
 .tabs-scroll::-webkit-scrollbar { display: none; }
+
+.dashboard-main {
+  padding-top: 1.75rem;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding-top: 1rem !important;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 1.25rem !important;
+  }
+}
+
+/* Touch targets helper */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 

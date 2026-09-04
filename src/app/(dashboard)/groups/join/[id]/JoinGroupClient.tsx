@@ -102,7 +102,7 @@ export default function JoinGroupClient({
 const styles: Record<string, React.CSSProperties> = {
   container: {
     maxWidth: "500px",
-    margin: "4rem auto",
+    margin: "clamp(1.5rem, 5vw, 4rem) auto",
     padding: "0 1rem",
     display: "flex",
     flexDirection: "column",
@@ -119,7 +119,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignSelf: "flex-start",
   },
   card: {
-    padding: "2.5rem 2rem",
     textAlign: "center",
   },
   content: {
@@ -150,18 +149,18 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: "1.75rem",
     fontWeight: 700,
-    color: "var(--text)",
+    color: "var(--text-primary)",
     margin: 0,
   },
   subtitle: {
     fontSize: "0.95rem",
-    color: "var(--text-muted)",
+    color: "var(--text-secondary)",
     lineHeight: 1.5,
     margin: 0,
   },
   desc: {
     fontSize: "0.9rem",
-    color: "var(--text-muted)",
+    color: "var(--text-secondary)",
     background: "var(--surface-hover)",
     border: "1px solid var(--border-light)",
     padding: "0.75rem 1rem",
@@ -190,7 +189,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--text-muted)",
   },
   metaValue: {
-    color: "var(--text)",
+    color: "var(--text-primary)",
     fontWeight: 600,
   },
   btn: {
@@ -201,6 +200,8 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     gap: "0.5rem",
     marginTop: "0.5rem",
+    minHeight: "48px",
+    fontSize: "0.95rem",
   },
   error: {
     color: "var(--owes)",

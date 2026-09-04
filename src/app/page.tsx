@@ -210,7 +210,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.875rem",
   },
   heroSection: {
-    padding: "6rem 0 4rem 0",
+    padding: "clamp(3rem, 7vw, 6rem) 0 clamp(2rem, 5vw, 4rem) 0",
     textAlign: "center",
   },
   heroContainer: {
@@ -235,9 +235,9 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: "1.5rem",
   },
   heroTitle: {
-    fontSize: "4.25rem",
+    fontSize: "clamp(2.25rem, 6.5vw, 4.25rem)",
     fontWeight: 800,
-    lineHeight: 1.1,
+    lineHeight: 1.15,
     letterSpacing: "-0.03em",
     color: "#111827",
     fontFamily: "var(--font-brand)",
@@ -246,7 +246,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#10B981",
   },
   heroDescription: {
-    fontSize: "1.15rem",
+    fontSize: "clamp(1rem, 2.5vw, 1.15rem)",
     color: "#4B5563",
     marginTop: "1.5rem",
     maxWidth: "600px",
@@ -256,25 +256,31 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     gap: "1rem",
     marginTop: "2.5rem",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: "420px",
   },
   ctaBtnPrimary: {
     padding: "0.85rem 2rem",
     fontSize: "1.05rem",
     gap: "0.75rem",
+    flex: "1 1 180px",
   },
   ctaBtnSecondary: {
     padding: "0.85rem 2rem",
     fontSize: "1.05rem",
+    flex: "1 1 140px",
   },
   featuresSection: {
-    padding: "4rem 0 8rem 0",
+    padding: "clamp(2rem, 5vw, 4rem) 0 clamp(4rem, 8vw, 8rem) 0",
   },
   featuresHeader: {
     textAlign: "center",
     marginBottom: "3rem",
   },
   featuresTitle: {
-    fontSize: "2rem",
+    fontSize: "clamp(1.5rem, 4vw, 2rem)",
     fontWeight: 700,
     fontFamily: "var(--font-brand)",
   },
@@ -284,7 +290,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1.5rem",
   },
   featureCard: {
-    padding: "2rem",
+    padding: "1.75rem",
     display: "flex",
     flexDirection: "column",
     gap: "1rem",
@@ -302,7 +308,7 @@ const styles: Record<string, React.CSSProperties> = {
   featureCardTitle: {
     fontSize: "1.2rem",
     fontWeight: 600,
-    color: "#fff",
+    color: "var(--text-primary)",
   },
   featureCardDesc: {
     fontSize: "0.9rem",
