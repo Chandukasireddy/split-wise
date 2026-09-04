@@ -17,7 +17,6 @@ export async function settleUp(
   currency: string,
   groupId: string,
   payerId: string, // the debtor paying
-  payeeId: string  // the creditor receiving
   payeeId: string, // the creditor receiving
   date?: string | Date
 ): Promise<SettleActionResult> {

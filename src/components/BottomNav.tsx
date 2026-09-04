@@ -16,7 +16,6 @@ const navItems = [
   { href: "/profile",    label: "Profile",   icon: User },
 ];
 
-export default function BottomNav({ displayName: _displayName }: BottomNavProps) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function BottomNav(_props: BottomNavProps) {
   const pathname = usePathname();
