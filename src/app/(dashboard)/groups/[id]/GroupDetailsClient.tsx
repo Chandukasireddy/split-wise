@@ -236,6 +236,7 @@ export default function GroupDetailsClient({
       expensePayer,
       expenseSplitType,
       splitsPayload,
+      conversionRate
       conversionRate,
       expenseDate
     );
@@ -272,6 +273,7 @@ export default function GroupDetailsClient({
 
     setLoading(true);
 
+    const res = await settleUp(amount, settleCurrency, group.id, settlePayer, settlePayee);
     const res = await settleUp(amount, settleCurrency, group.id, settlePayer, settlePayee, settleDate);
 
     if (res.success) {
@@ -363,6 +365,7 @@ export default function GroupDetailsClient({
       expensePayer,
       expenseSplitType,
       splitsPayload,
+      conversionRate
       conversionRate,
       expenseDate
     );
@@ -410,6 +413,9 @@ export default function GroupDetailsClient({
   // Debounced member search
   React.useEffect(() => {
     if (memberSearchQuery.trim().length < 2) {
+      setMemberSearchResults([]);
+      setMemberSearching(false);
+      return;
       const clearTimer = setTimeout(() => {
         setMemberSearchResults([]);
         setMemberSearching(false);
@@ -417,6 +423,7 @@ export default function GroupDetailsClient({
       return () => clearTimeout(clearTimer);
     }
 
+    setMemberSearching(true);
     const startTimer = setTimeout(() => {
       setMemberSearching(true);
     }, 0);
@@ -609,9 +616,11 @@ export default function GroupDetailsClient({
 
         {/* Desktop primary actions */}
         <div className="desktop-only" style={styles.actionRow}>
+          <button onClick={() => { setExpensePayer(currentUser.userId); setShowExpenseModal(true); }} className="btn btn-primary">
           <button onClick={() => { setEditingExpenseId(null); setExpensePayer(currentUser.userId); setExpenseDate(new Date().toISOString().split("T")[0]); setShowExpenseModal(true); }} className="btn btn-primary">
             <Plus size={17} /> Add Expense
           </button>
+          <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setShowSettleModal(true); }} className="btn btn-secondary">
           <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setSettleDate(new Date().toISOString().split("T")[0]); setShowSettleModal(true); }} className="btn btn-secondary">
             <PiggyBank size={17} /> Settle Up
           </button>
@@ -619,9 +628,11 @@ export default function GroupDetailsClient({
 
         {/* Mobile: two buttons row below hero info */}
         <div className="mobile-only" style={{ width: "100%", display: "flex", gap: "0.75rem", marginTop: "0.75rem" }}>
+          <button onClick={() => { setExpensePayer(currentUser.userId); setShowExpenseModal(true); }} className="btn btn-primary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
           <button onClick={() => { setEditingExpenseId(null); setExpensePayer(currentUser.userId); setExpenseDate(new Date().toISOString().split("T")[0]); setShowExpenseModal(true); }} className="btn btn-primary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
             <Plus size={16} /> Add Expense
           </button>
+          <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setShowSettleModal(true); }} className="btn btn-secondary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
           <button onClick={() => { setSettlePayer(members[0]?.id || ""); setSettlePayee(members[1]?.id || ""); setSettleDate(new Date().toISOString().split("T")[0]); setShowSettleModal(true); }} className="btn btn-secondary" style={{ flex: 1, padding: "0.65rem", fontSize: "0.9rem" }}>
             <PiggyBank size={16} /> Settle Up
           </button>
@@ -1077,6 +1088,7 @@ export default function GroupDetailsClient({
           <div className="glass-card" style={styles.modalCard}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>{editingExpenseId ? "Edit Expense" : "Add an Expense"}</h2>
+              <button onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setFormError(null); }} style={styles.modalCloseBtn}>
               <button onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} style={styles.modalCloseBtn}>
                 <X size={20} />
               </button>
@@ -1114,6 +1126,12 @@ export default function GroupDetailsClient({
               </div>
 
               <div style={styles.modalFormRow}>
+                <div style={{ flex: 1 }}>
+                  <label htmlFor="expCurr" className="form-label">Currency</label>
+                  <select
+                    id="expCurr"
+                    value={expenseCurrency}
+                    onChange={(e) => setExpenseCurrency(e.target.value)}
                 <div style={{ flex: 1.1 }}>
                   <label htmlFor="expDate" className="form-label">Date *</label>
                   <input
@@ -1124,6 +1142,9 @@ export default function GroupDetailsClient({
                     onChange={(e) => setExpenseDate(e.target.value)}
                     className="form-input"
                     style={{ background: "#f8fafc" }}
+                  >
+                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -1293,6 +1314,7 @@ export default function GroupDetailsClient({
               </div>
 
               <div style={styles.modalActions}>
+                <button type="button" onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setFormError(null); }} className="btn btn-secondary">
                 <button type="button" onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -1311,6 +1333,7 @@ export default function GroupDetailsClient({
           <div className="glass-card" style={styles.modalCard}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Record a Settlement</h2>
+              <button onClick={() => { setShowSettleModal(false); setFormError(null); }} style={styles.modalCloseBtn}>
               <button onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} style={styles.modalCloseBtn}>
                 <X size={20} />
               </button>
@@ -1380,6 +1403,7 @@ export default function GroupDetailsClient({
                     className="form-input"
                   />
                 </div>
+                <div style={{ flex: 1 }}>
                 <div style={{ flex: 0.9 }}>
                   <label htmlFor="settleCurr" className="form-label">Currency</label>
                   <select
@@ -1395,6 +1419,7 @@ export default function GroupDetailsClient({
               </div>
 
               <div style={styles.modalActions}>
+                <button type="button" onClick={() => { setShowSettleModal(false); setFormError(null); }} className="btn btn-secondary">
                 <button type="button" onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>

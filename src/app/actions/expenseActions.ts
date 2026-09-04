@@ -35,6 +35,7 @@ export async function addExpense(
   payerId: string,
   splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
   splits: SplitInput[],
+  conversionRate: number = 1.0
   conversionRate: number = 1.0,
   date?: string | Date
 ): Promise<ExpenseActionResult> {
@@ -282,6 +283,7 @@ export async function updateExpense(
   payerId: string,
   splitType: "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES",
   splits: SplitInput[],
+  conversionRate: number = 1.0
   conversionRate: number = 1.0,
   date?: string | Date
 ): Promise<ExpenseActionResult> {
@@ -381,6 +383,7 @@ export async function updateExpense(
 
       await tx.expense.update({
         where: { id: expenseId },
+        data: { description: trimmedDesc, amount, category, currency, payerId, splitType, conversionRate, convertedAmount },
         data: {
           description: trimmedDesc,
           amount,

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Users, Search, Plus, Check, Loader2, Sparkles, UserPlus } from "lucide-react";
 import { Users, Search, Plus, Loader2, Sparkles, UserPlus } from "lucide-react";
 import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
 import { FriendInfo, GroupInfo } from "@/app/actions/userActions";
