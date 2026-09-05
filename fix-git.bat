@@ -8,3 +8,4 @@ git reset
 echo.
 echo Git index successfully restored!
 pause
+
