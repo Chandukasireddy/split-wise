@@ -27,7 +27,7 @@ import {
   Film,
   Receipt,
   Check,
-  ChevronDown,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -124,7 +124,6 @@ export default function GroupDetailsClient({
   
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<"expenses" | "debts" | "analytics">("expenses");
-  const [showDebtBreakdown, setShowDebtBreakdown] = useState(false);
   
   // Modals state
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -146,6 +145,7 @@ export default function GroupDetailsClient({
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   
   // Settle Up Form state
+  const [settleMode, setSettleMode] = useState<"balances" | "form">("balances");
   const [settlePayer, setSettlePayer] = useState("");
   const [settlePayee, setSettlePayee] = useState("");
   const [settleAmt, setSettleAmt] = useState("");
@@ -261,6 +261,7 @@ export default function GroupDetailsClient({
     setSettleAmt(amt.toString());
     setSettleCurrency(curr);
     setSettleDate(new Date().toISOString().split("T")[0]);
+    setSettleMode("form");
     setShowSettleModal(true);
   };
 
@@ -348,6 +349,7 @@ export default function GroupDetailsClient({
       setShowSettleModal(false);
       setSettleAmt("");
       setSettleDate(new Date().toISOString().split("T")[0]);
+      setSettleMode("balances");
       router.refresh();
     } else {
       setFormError(res.error || "Failed to record settlement.");
@@ -642,9 +644,6 @@ export default function GroupDetailsClient({
   // Personal balance in group
   const userBalanceDetail = balances.balancesByCurrency[group.defaultCurrency]?.[currentUser.userId];
   const userNetBalance = userBalanceDetail?.netBalance || 0;
-  const currentDebts = balances.debtsByCurrency[group.defaultCurrency] || [];
-  const debtsOwedToUser = currentDebts.filter((d) => d.toUserId === currentUser.userId);
-  const debtsUserOwes = currentDebts.filter((d) => d.fromUserId === currentUser.userId);
 
   return (
     <div style={styles.container} className="animate-fade-in">
@@ -657,7 +656,19 @@ export default function GroupDetailsClient({
           </Link>
           <div style={{ minWidth: 0, flex: 1 }}>
             <h1 style={styles.groupTitleCompact}>{group.name}</h1>
-            {group.description && <p style={styles.groupSubtitleCompact}>{group.description}</p>}
+            <div style={styles.compactBalanceText}>
+              {userNetBalance > 0.01 ? (
+                <span>
+                  You are owed <strong style={{ color: "var(--owed)" }}>{formatCurrency(userNetBalance, group.defaultCurrency)}</strong>
+                </span>
+              ) : userNetBalance < -0.01 ? (
+                <span>
+                  You owe <strong style={{ color: "#f59e0b" }}>{formatCurrency(Math.abs(userNetBalance), group.defaultCurrency)}</strong>
+                </span>
+              ) : (
+                <span style={{ color: "var(--text-muted)" }}>All settled up</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -696,117 +707,28 @@ export default function GroupDetailsClient({
         </div>
       </div>
 
-      {/* ── Personal Balance Breakdown Card (Splitwise Mobile UI) ── */}
-      <div className="glass-card" style={styles.balanceSummaryCard}>
-        <div style={styles.balanceSummaryHeader}>
-          {userNetBalance > 0.01 ? (
-            <div style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text-primary)" }}>
-              You are owed <span style={{ color: "var(--owed)" }}>{formatCurrency(userNetBalance, group.defaultCurrency)}</span> overall
-            </div>
-          ) : userNetBalance < -0.01 ? (
-            <div style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text-primary)" }}>
-              You owe <span style={{ color: "#f59e0b" }}>{formatCurrency(Math.abs(userNetBalance), group.defaultCurrency)}</span> overall
-            </div>
-          ) : (
-            <div style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-secondary)" }}>
-              You are all settled up in this group
-            </div>
-          )}
-        </div>
-
-        {/* Collapsible person breakdown with vertical accent line */}
-        {(debtsOwedToUser.length > 0 || debtsUserOwes.length > 0) && (
-          <div style={{ marginTop: "0.15rem" }}>
-            <button
-              type="button"
-              onClick={() => setShowDebtBreakdown((prev) => !prev)}
-              style={styles.debtDropdownToggle}
-            >
-              <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--primary)" }}>
-                {showDebtBreakdown ? "Hide breakdown" : `View breakdown (${debtsOwedToUser.length + debtsUserOwes.length})`}
-              </span>
-              <ChevronDown
-                size={14}
-                color="var(--primary)"
-                style={{
-                  transform: showDebtBreakdown ? "rotate(180deg)" : "none",
-                  transition: "transform 0.2s ease",
-                }}
-              />
-            </button>
-
-            {showDebtBreakdown && (
-              <div style={styles.balanceBreakdownList}>
-                {debtsOwedToUser.map((debt) => (
-                  <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-                      {debt.fromName} owes you{" "}
-                      <strong style={{ color: "var(--owed)" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
-                    </span>
-                  </div>
-                ))}
-                {debtsUserOwes.map((debt) => (
-                  <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
-                    <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-                      You owe {debt.toName}{" "}
-                      <strong style={{ color: "#f59e0b" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Action Pills */}
-        <div style={styles.actionPillsRow}>
-          <button
-            type="button"
-            onClick={() => {
-              setSettlePayer(members[0]?.id || "");
-              setSettlePayee(members[1]?.id || "");
-              setSettleDate(new Date().toISOString().split("T")[0]);
-              setShowSettleModal(true);
-            }}
-            className="action-pill-btn"
-          >
-            <PiggyBank size={14} color="var(--primary)" />
-            <span>Settle up</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab(activeTab === "analytics" ? "expenses" : "analytics")}
-            className={`action-pill-btn ${activeTab === "analytics" ? "active" : ""}`}
-          >
-            <ChartIcon size={14} />
-            <span>Analytics</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab(activeTab === "debts" ? "expenses" : "debts")}
-            className={`action-pill-btn ${activeTab === "debts" ? "active" : ""}`}
-          >
-            <Users size={14} />
-            <span>Balances</span>
-          </button>
-        </div>
+      {/* Action Pills */}
+      <div style={styles.actionPillsRow}>
+        <button
+          type="button"
+          onClick={() => {
+            setSettleMode("balances");
+            setShowSettleModal(true);
+          }}
+          className="action-pill-btn"
+        >
+          <PiggyBank size={14} color="var(--primary)" />
+          <span>Settle up</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab(activeTab === "analytics" ? "expenses" : "analytics")}
+          className={`action-pill-btn ${activeTab === "analytics" ? "active" : ""}`}
+        >
+          <ChartIcon size={14} />
+          <span>Analytics</span>
+        </button>
       </div>
-
-      {/* ── Floating Action Button (Splitwise Mobile FAB) ── */}
-      <button
-        type="button"
-        onClick={() => {
-          setEditingExpenseId(null);
-          setExpensePayer(currentUser.userId);
-          setExpenseDate(new Date().toISOString().split("T")[0]);
-          setShowExpenseModal(true);
-        }}
-        className="splitwise-fab"
-        title="Add an expense"
-      >
-        <Plus size={18} strokeWidth={2.5} />
-        <span>Add expense</span>
-      </button>
 
       {/* Dynamic Tab Contents */}
       <div style={{ minHeight: "400px" }}>
@@ -1389,18 +1311,40 @@ export default function GroupDetailsClient({
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowSettleModal(false);
+              setSettleMode("balances");
               setSettleDate(new Date().toISOString().split("T")[0]);
               setFormError(null);
             }
           }}
         >
-          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+          <div className="glass-card modal-card-responsive" style={{ ...styles.modalCard, maxWidth: "520px" }}>
             <div className="modal-drag-handle" />
             <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>Record a Settlement</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {settleMode === "form" && (
+                  <button
+                    type="button"
+                    onClick={() => setSettleMode("balances")}
+                    style={styles.modalBackBtn}
+                    title="Back to balances"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                )}
+                <div>
+                  <h2 style={styles.modalTitle}>
+                    {settleMode === "balances" ? "Settle Up & Balances" : "Record a Settlement"}
+                  </h2>
+                  <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0 }}>
+                    {settleMode === "balances"
+                      ? "View group debts and settle individually"
+                      : "Record payment between two members"}
+                  </p>
+                </div>
+              </div>
               <button 
                 type="button" 
-                onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} 
+                onClick={() => { setShowSettleModal(false); setSettleMode("balances"); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} 
                 className="modal-close-btn-responsive" 
                 style={styles.modalCloseBtn}
                 title="Close dialog"
@@ -1411,91 +1355,247 @@ export default function GroupDetailsClient({
 
             {formError && <div style={styles.modalErrorBox}>{formError}</div>}
 
-            <form onSubmit={handleSettleSubmit} style={styles.modalForm}>
-              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="settlePayer" className="form-label">Who Paid</label>
-                  <select
-                    id="settlePayer"
-                    value={settlePayer}
-                    onChange={(e) => setSettlePayer(e.target.value)}
-                    className="form-input"
-                    style={{ background: "#f8fafc" }}
-                  >
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.id === currentUser.userId ? "You" : m.name}
-                      </option>
-                    ))}
-                  </select>
+            {settleMode === "balances" ? (
+              <div style={{ padding: "0.5rem 1.25rem 1.25rem", overflowY: "auto", maxHeight: "70vh" }}>
+                {/* User Net Balance Summary */}
+                <div style={styles.modalBalanceSummary}>
+                  <div style={{ fontSize: "0.74rem", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700 }}>
+                    Your Balance in {group.name}
+                  </div>
+                  {userNetBalance > 0.01 ? (
+                    <div style={{ fontSize: "1.08rem", fontWeight: 800, color: "var(--owed)", marginTop: "0.2rem" }}>
+                      You are owed {formatCurrency(userNetBalance, group.defaultCurrency)} overall
+                    </div>
+                  ) : userNetBalance < -0.01 ? (
+                    <div style={{ fontSize: "1.08rem", fontWeight: 800, color: "#f59e0b", marginTop: "0.2rem" }}>
+                      You owe {formatCurrency(Math.abs(userNetBalance), group.defaultCurrency)} overall
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "0.98rem", fontWeight: 700, color: "var(--text-primary)", marginTop: "0.2rem" }}>
+                      You are all settled up in this group!
+                    </div>
+                  )}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="settlePayee" className="form-label">Who Received</label>
-                  <select
-                    id="settlePayee"
-                    value={settlePayee}
-                    onChange={(e) => setSettlePayee(e.target.value)}
-                    className="form-input"
-                    style={{ background: "#f8fafc" }}
-                  >
-                    {members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.id === currentUser.userId ? "You" : m.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
-                <div style={{ flex: 1.1 }}>
-                  <label htmlFor="settleDate" className="form-label">Date *</label>
-                  <input
-                    id="settleDate"
-                    type="date"
-                    required
-                    value={settleDate}
-                    onChange={(e) => setSettleDate(e.target.value)}
-                    className="form-input"
-                    style={{ background: "#f8fafc" }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="settleAmt" className="form-label">Amount Paid</label>
-                  <input
-                    id="settleAmt"
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="0.00"
-                    value={settleAmt}
-                    onChange={(e) => setSettleAmt(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div style={{ flex: 0.9 }}>
-                  <label htmlFor="settleCurr" className="form-label">Currency</label>
-                  <select
-                    id="settleCurr"
-                    value={settleCurrency}
-                    onChange={(e) => setSettleCurrency(e.target.value)}
-                    className="form-input"
-                    style={{ background: "#f8fafc" }}
-                  >
-                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
+                {/* Group Debts Ledger */}
+                <div style={{ marginTop: "0.85rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-primary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      {balances.simplifyDebts ? "Simplified Debts" : "Direct Debts"}
+                    </span>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                      {balances.simplifyDebts ? "Minimized transfers" : "Direct balances"}
+                    </span>
+                  </div>
 
-              <div className="modal-actions-responsive" style={styles.modalActions}>
-                <button type="button" onClick={() => { setShowSettleModal(false); setSettleDate(new Date().toISOString().split("T")[0]); setFormError(null); }} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" disabled={loading} className="btn btn-primary">
-                  {loading ? "Recording..." : "Record Settlement"}
-                </button>
+                  {balances.currencies.map((curr) => {
+                    const debts = balances.debtsByCurrency[curr] || [];
+                    if (debts.length === 0) {
+                      return (
+                        <div key={curr} style={styles.modalSettledBox}>
+                          <CheckCircle2 size={16} color="var(--primary)" />
+                          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>
+                            Everyone is settled up in {curr}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={curr} style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginBottom: "0.75rem" }}>
+                        {debts.map((debt, idx) => {
+                          const isUserPayer = debt.fromUserId === currentUser.userId;
+                          const isUserPayee = debt.toUserId === currentUser.userId;
+                          const involvesUser = isUserPayer || isUserPayee;
+
+                          return (
+                            <div
+                              key={idx}
+                              style={{
+                                ...styles.modalDebtCard,
+                                borderColor: involvesUser ? "rgba(16,185,129,0.4)" : "var(--border-light)",
+                                background: involvesUser ? "rgba(16,185,129,0.04)" : "var(--surface)",
+                              }}
+                            >
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: "0.86rem", fontWeight: 600, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.3rem", flexWrap: "wrap" }}>
+                                  <span>{isUserPayer ? "You" : debt.fromName}</span>
+                                  <span style={{ color: "var(--text-muted)", fontSize: "0.78rem", display: "inline-flex", alignItems: "center" }}>
+                                    owes <ArrowRight size={12} style={{ margin: "0 0.15rem" }} />
+                                  </span>
+                                  <span>{isUserPayee ? "You" : debt.toName}</span>
+                                </div>
+                                <div style={{ fontSize: "0.95rem", fontWeight: 800, color: isUserPayer ? "#f59e0b" : "var(--owed)", marginTop: "0.1rem" }}>
+                                  {formatCurrency(debt.amount, debt.currency)}
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSettlePayer(debt.fromUserId);
+                                  setSettlePayee(debt.toUserId);
+                                  setSettleAmt(debt.amount.toString());
+                                  setSettleCurrency(debt.currency);
+                                  setSettleDate(new Date().toISOString().split("T")[0]);
+                                  setSettleMode("form");
+                                }}
+                                className="btn btn-primary"
+                                style={{
+                                  padding: "0.38rem 0.8rem",
+                                  fontSize: "0.8rem",
+                                  fontWeight: 700,
+                                  borderRadius: "10px",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                Settle
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Record custom payment link */}
+                <div style={{ marginTop: "0.85rem", borderTop: "1px solid var(--border-light)", paddingTop: "0.75rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettlePayer(currentUser.userId);
+                      const otherMember = members.find((m) => m.id !== currentUser.userId);
+                      setSettlePayee(otherMember?.id || members[0]?.id || "");
+                      setSettleAmt("");
+                      setSettleCurrency(group.defaultCurrency);
+                      setSettleDate(new Date().toISOString().split("T")[0]);
+                      setSettleMode("form");
+                    }}
+                    style={styles.recordCustomBtn}
+                  >
+                    <Plus size={15} />
+                    <span>Record custom settlement</span>
+                  </button>
+                </div>
+
+                {/* Past settlements */}
+                {group.payments.length > 0 && (
+                  <div style={{ marginTop: "1rem" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "0.45rem" }}>
+                      Recent Settlements ({group.payments.length})
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", maxHeight: "130px", overflowY: "auto" }}>
+                      {group.payments.slice(0, 5).map((payment) => (
+                        <div key={payment.id} style={styles.modalPastPaymentItem}>
+                          <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                            <strong>{payment.payer.name}</strong> paid <strong>{payment.payee.name}</strong>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ color: "var(--owed)", fontWeight: 700, fontSize: "0.82rem" }}>
+                              {formatCurrency(payment.amount, payment.currency)}
+                            </div>
+                            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                              {new Date(payment.date).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSettleSubmit} style={styles.modalForm}>
+                <div className="modal-form-row-responsive" style={styles.modalFormRow}>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="settlePayer" className="form-label">Who Paid</label>
+                    <select
+                      id="settlePayer"
+                      value={settlePayer}
+                      onChange={(e) => setSettlePayer(e.target.value)}
+                      className="form-input"
+                      style={{ background: "#f8fafc" }}
+                    >
+                      {members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.id === currentUser.userId ? "You" : m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="settlePayee" className="form-label">Who Received</label>
+                    <select
+                      id="settlePayee"
+                      value={settlePayee}
+                      onChange={(e) => setSettlePayee(e.target.value)}
+                      className="form-input"
+                      style={{ background: "#f8fafc" }}
+                    >
+                      {members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.id === currentUser.userId ? "You" : m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="modal-form-row-responsive" style={styles.modalFormRow}>
+                  <div style={{ flex: 1.1 }}>
+                    <label htmlFor="settleDate" className="form-label">Date *</label>
+                    <input
+                      id="settleDate"
+                      type="date"
+                      required
+                      value={settleDate}
+                      onChange={(e) => setSettleDate(e.target.value)}
+                      className="form-input"
+                      style={{ background: "#f8fafc" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="settleAmt" className="form-label">Amount Paid</label>
+                    <input
+                      id="settleAmt"
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="0.00"
+                      value={settleAmt}
+                      onChange={(e) => setSettleAmt(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div style={{ flex: 0.9 }}>
+                    <label htmlFor="settleCurr" className="form-label">Currency</label>
+                    <select
+                      id="settleCurr"
+                      value={settleCurrency}
+                      onChange={(e) => setSettleCurrency(e.target.value)}
+                      className="form-input"
+                      style={{ background: "#f8fafc" }}
+                    >
+                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="modal-actions-responsive" style={styles.modalActions}>
+                  <button
+                    type="button"
+                    onClick={() => setSettleMode("balances")}
+                    className="btn btn-secondary"
+                  >
+                    Back to Balances
+                  </button>
+                  <button type="submit" disabled={loading} className="btn btn-primary">
+                    {loading ? "Recording..." : "Record Settlement"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>,
         document.body
@@ -2011,6 +2111,11 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
+  compactBalanceText: {
+    fontSize: "0.82rem",
+    marginTop: "0.15rem",
+    lineHeight: 1.2,
+  },
   headerCircleBtn: {
     width: "40px",
     height: "40px",
@@ -2101,6 +2206,68 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "0.5rem",
     flexWrap: "wrap",
     paddingTop: "0.25rem",
+    marginBottom: "1rem",
+  },
+  modalBackBtn: {
+    background: "transparent",
+    border: "none",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0.2rem",
+  },
+  modalBalanceSummary: {
+    padding: "0.85rem 1rem",
+    borderRadius: "12px",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    marginBottom: "0.85rem",
+  },
+  modalDebtCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0.75rem 1rem",
+    borderRadius: "12px",
+    border: "1px solid var(--border-light)",
+    gap: "0.75rem",
+  },
+  modalSettledBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.85rem 1rem",
+    borderRadius: "12px",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    justifyContent: "center",
+  },
+  recordCustomBtn: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.45rem",
+    padding: "0.65rem",
+    borderRadius: "12px",
+    border: "1.5px dashed var(--border-light)",
+    color: "var(--text-secondary)",
+    fontSize: "0.82rem",
+    fontWeight: 600,
+    background: "transparent",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  },
+  modalPastPaymentItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0.5rem 0.75rem",
+    borderRadius: "8px",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
   },
   simplifyToggleBox: {
     padding: "0.85rem 1rem",

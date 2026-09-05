@@ -10,12 +10,9 @@ import {
   User,
   X,
   ChevronRight,
-  Search,
   Sparkles,
-  UserPlus,
 } from "lucide-react";
 import { GroupInfo, FriendInfo, getUserGroups, getFriends } from "@/app/actions/userActions";
-import { searchUsers } from "@/app/actions/groupActions";
 import { getAvatarGradient } from "@/lib/avatar";
 
 interface GlobalAddExpenseFabProps {
@@ -27,7 +24,6 @@ interface GlobalAddExpenseFabProps {
 export default function GlobalAddExpenseFab({
   initialGroups,
   initialFriends,
-  currentUserId,
 }: GlobalAddExpenseFabProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -37,9 +33,6 @@ export default function GlobalAddExpenseFab({
   const [friends, setFriends] = useState<FriendInfo[]>(initialFriends);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"group" | "friend">("group");
-  const [searchFilter, setSearchFilter] = useState("");
-  const [externalUsers, setExternalUsers] = useState<{ id: string; name: string; username: string }[]>([]);
-  const [searchingExternal, setSearchingExternal] = useState(false);
 
   // Portal mount flag
   const mounted = React.useSyncExternalStore(
@@ -68,55 +61,24 @@ export default function GlobalAddExpenseFab({
   }, [showModal]);
 
   function openModal() {
-    setSearchFilter("");
-    setExternalUsers([]);
-    setSearchingExternal(false);
     setShowModal(true);
     getUserGroups().then((g) => setGroups(g)).catch(() => {});
     getFriends().then((f) => setFriends(f)).catch(() => {});
   }
 
-  // Handle live user search in Friends tab
-  useEffect(() => {
-    if (activeTab !== "friend" || searchFilter.trim().length < 2) {
-      return;
-    }
-
-    let active = true;
-    const timer = setTimeout(async () => {
-      try {
-        setSearchingExternal(true);
-        const results = await searchUsers(searchFilter.trim());
-        if (active) {
-          // Filter out current user and users already in friends list
-          const friendIds = new Set(friends.map((f) => f.id));
-          const filtered = results.filter(
-            (u) => u.id !== currentUserId && !friendIds.has(u.id)
-          );
-          setExternalUsers(filtered);
-        }
-      } catch {
-        if (active) setExternalUsers([]);
-      } finally {
-        if (active) setSearchingExternal(false);
-      }
-    }, 250);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [activeTab, searchFilter, currentUserId, friends]);
-
-  // Hide the FAB on group creation or joining pages
-  if (pathname === "/groups/new" || pathname?.startsWith("/groups/join")) {
+  // Hide the FAB on group creation, joining, or profile/me pages
+  if (
+    pathname === "/groups/new" ||
+    pathname?.startsWith("/groups/join") ||
+    pathname === "/profile" ||
+    pathname?.startsWith("/profile")
+  ) {
     return null;
   }
 
   function handleSelectGroup(groupId: string) {
     setShowModal(false);
     if (currentGroupId === groupId) {
-      // Already on this group page, fire immediate event
       window.dispatchEvent(new CustomEvent("open-group-expense-modal"));
     } else {
       startTransition(() => {
@@ -138,20 +100,6 @@ export default function GlobalAddExpenseFab({
       });
     }
   }
-
-  // Filtered lists
-  const query = searchFilter.toLowerCase().trim();
-  const filteredGroups = query
-    ? groups.filter((g) => g.name.toLowerCase().includes(query))
-    : groups;
-
-  const filteredFriends = query
-    ? friends.filter(
-        (f) =>
-          f.name.toLowerCase().includes(query) ||
-          f.username.toLowerCase().includes(query)
-      )
-    : friends;
 
   return (
     <>
@@ -224,12 +172,7 @@ export default function GlobalAddExpenseFab({
             <div style={styles.tabBar}>
               <button
                 type="button"
-                onClick={() => {
-                  setActiveTab("group");
-                  setSearchFilter("");
-                  setExternalUsers([]);
-                  setSearchingExternal(false);
-                }}
+                onClick={() => setActiveTab("group")}
                 style={{
                   ...styles.tabBtn,
                   ...(activeTab === "group" ? styles.tabBtnActive : {}),
@@ -242,12 +185,7 @@ export default function GlobalAddExpenseFab({
 
               <button
                 type="button"
-                onClick={() => {
-                  setActiveTab("friend");
-                  setSearchFilter("");
-                  setExternalUsers([]);
-                  setSearchingExternal(false);
-                }}
+                onClick={() => setActiveTab("friend")}
                 style={{
                   ...styles.tabBtn,
                   ...(activeTab === "friend" ? styles.tabBtnActive : {}),
@@ -259,56 +197,20 @@ export default function GlobalAddExpenseFab({
               </button>
             </div>
 
-            {/* Search Filter Box */}
-            <div style={styles.searchBox}>
-              <Search size={15} color="var(--text-muted)" style={{ marginLeft: "0.75rem", flexShrink: 0 }} />
-              <input
-                type="text"
-                value={searchFilter}
-                onChange={(e) => {
-                  setSearchFilter(e.target.value);
-                  if (e.target.value.trim().length < 2) {
-                    setExternalUsers([]);
-                    setSearchingExternal(false);
-                  }
-                }}
-                placeholder={
-                  activeTab === "group"
-                    ? "Search your groups..."
-                    : "Search friend or username..."
-                }
-                style={styles.searchInput}
-                autoFocus
-              />
-              {searchFilter && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchFilter("");
-                    setExternalUsers([]);
-                    setSearchingExternal(false);
-                  }}
-                  style={styles.clearSearchBtn}
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
             {/* List Body */}
             <div style={styles.listContainer}>
               {activeTab === "group" ? (
                 /* Group List */
                 <div style={styles.itemList}>
-                  {filteredGroups.length === 0 ? (
+                  {groups.length === 0 ? (
                     <div style={styles.emptyState}>
                       <Users size={32} color="var(--text-muted)" />
                       <p style={styles.emptyText}>
-                        {query ? "No matching groups found." : "You don't have any groups yet."}
+                        You don&apos;t have any groups yet.
                       </p>
                     </div>
                   ) : (
-                    filteredGroups.map((group) => {
+                    groups.map((group) => {
                       const isCurrent = group.id === currentGroupId;
                       return (
                         <button
@@ -348,7 +250,7 @@ export default function GlobalAddExpenseFab({
                   <Link
                     href="/groups/new"
                     onClick={() => setShowModal(false)}
-                    style={styles.createGroupBtn}
+                    style={styles.actionBtnRow}
                   >
                     <Plus size={15} />
                     <span>Create a new group</span>
@@ -357,96 +259,67 @@ export default function GlobalAddExpenseFab({
               ) : (
                 /* Friends List */
                 <div style={styles.itemList}>
-                  {filteredFriends.length === 0 && externalUsers.length === 0 && (
+                  {friends.length === 0 ? (
                     <div style={styles.emptyState}>
                       <User size={32} color="var(--text-muted)" />
                       <p style={styles.emptyText}>
-                        {query
-                          ? searchingExternal
-                            ? "Searching users..."
-                            : "No matching friends or users found."
-                          : "No friends yet. Search a username above to split bills 1-on-1."}
+                        No friends added yet. Connect with someone to split bills directly.
                       </p>
                     </div>
-                  )}
+                  ) : (
+                    friends.map((friend) => {
+                      const primaryBal = Object.entries(friend.balances || {})[0];
+                      const amount = primaryBal ? primaryBal[1] : 0;
+                      const curr = primaryBal ? primaryBal[0] : "EUR";
 
-                  {/* Existing Friends */}
-                  {filteredFriends.map((friend) => {
-                    const primaryBal = Object.entries(friend.balances || {})[0];
-                    const amount = primaryBal ? primaryBal[1] : 0;
-                    const curr = primaryBal ? primaryBal[0] : "EUR";
-
-                    return (
-                      <button
-                        key={friend.id}
-                        type="button"
-                        onClick={() => handleSelectFriend(friend.id)}
-                        style={styles.itemRow}
-                      >
-                        <div style={styles.itemLeft}>
-                          <div
-                            style={{
-                              ...styles.friendAvatar,
-                              background: getAvatarGradient(friend.id || friend.name),
-                            }}
-                          >
-                            {friend.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div style={{ textAlign: "left", minWidth: 0 }}>
-                            <div style={styles.itemName}>{friend.name}</div>
-                            <div style={styles.itemSub}>
-                              {amount > 0.01 ? (
-                                <span style={{ color: "var(--owed)", fontWeight: 600 }}>
-                                  owes you {curr} {amount.toFixed(2)}
-                                </span>
-                              ) : amount < -0.01 ? (
-                                <span style={{ color: "#f59e0b", fontWeight: 600 }}>
-                                  you owe {curr} {Math.abs(amount).toFixed(2)}
-                                </span>
-                              ) : (
-                                <span style={{ color: "var(--text-muted)" }}>settled up</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} color="var(--text-muted)" />
-                      </button>
-                    );
-                  })}
-
-                  {/* External Search Results (Users not yet in friends list) */}
-                  {externalUsers.length > 0 && (
-                    <div style={{ marginTop: "0.5rem" }}>
-                      <div style={styles.sectionDividerLabel}>
-                        <UserPlus size={13} />
-                        <span>Other users on SplitEasy</span>
-                      </div>
-                      {externalUsers.map((u) => (
+                      return (
                         <button
-                          key={u.id}
+                          key={friend.id}
                           type="button"
-                          onClick={() => handleSelectFriend(u.id)}
+                          onClick={() => handleSelectFriend(friend.id)}
                           style={styles.itemRow}
                         >
                           <div style={styles.itemLeft}>
                             <div
                               style={{
                                 ...styles.friendAvatar,
-                                background: getAvatarGradient(u.id || u.name),
+                                background: getAvatarGradient(friend.id || friend.name),
                               }}
                             >
-                              {u.name.charAt(0).toUpperCase()}
+                              {friend.name.charAt(0).toUpperCase()}
                             </div>
                             <div style={{ textAlign: "left", minWidth: 0 }}>
-                              <div style={styles.itemName}>{u.name}</div>
-                              <div style={styles.itemSub}>@{u.username} • Start splitting</div>
+                              <div style={styles.itemName}>{friend.name}</div>
+                              <div style={styles.itemSub}>
+                                {amount > 0.01 ? (
+                                  <span style={{ color: "var(--owed)", fontWeight: 600 }}>
+                                    owes you {curr} {amount.toFixed(2)}
+                                  </span>
+                                ) : amount < -0.01 ? (
+                                  <span style={{ color: "#f59e0b", fontWeight: 600 }}>
+                                    you owe {curr} {Math.abs(amount).toFixed(2)}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: "var(--text-muted)" }}>settled up</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <ChevronRight size={16} color="var(--text-muted)" />
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })
                   )}
+
+                  {/* Add / Manage Friends Action */}
+                  <Link
+                    href="/friends"
+                    onClick={() => setShowModal(false)}
+                    style={styles.actionBtnRow}
+                  >
+                    <Plus size={15} />
+                    <span>Add or find friends</span>
+                  </Link>
                 </div>
               )}
             </div>
@@ -610,35 +483,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
   },
 
-  /* Search box */
-  searchBox: {
-    display: "flex",
-    alignItems: "center",
-    margin: "0.5rem 1.25rem",
-    borderRadius: "12px",
-    background: "var(--surface-hover)",
-    border: "1px solid var(--border-light)",
-    overflow: "hidden",
-  },
-  searchInput: {
-    flex: 1,
-    padding: "0.6rem 0.75rem",
-    background: "transparent",
-    border: "none",
-    color: "var(--text-primary)",
-    fontSize: "0.85rem",
-    outline: "none",
-  },
-  clearSearchBtn: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-muted)",
-    padding: "0 0.75rem",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-  },
-
   /* List container */
   listContainer: {
     flex: 1,
@@ -715,7 +559,7 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: "ellipsis",
   },
 
-  createGroupBtn: {
+  actionBtnRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -730,18 +574,6 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     background: "transparent",
     transition: "all 0.15s ease",
-  },
-
-  sectionDividerLabel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.4rem",
-    fontSize: "0.72rem",
-    color: "var(--text-muted)",
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-    fontWeight: 700,
-    padding: "0.5rem 0.5rem 0.25rem",
   },
 
   emptyState: {

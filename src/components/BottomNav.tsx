@@ -13,7 +13,7 @@ const navItems = [
   { href: "/dashboard",  label: "Groups",   icon: Users },
   { href: "/friends",    label: "Friends",  icon: User },
   { href: "/activities", label: "Activity", icon: Activity },
-  { href: "/profile",    label: "Profile",  icon: CircleUser },
+  { href: "/profile",    label: "Me",       icon: CircleUser },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

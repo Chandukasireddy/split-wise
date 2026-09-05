@@ -579,7 +579,7 @@ export default function FriendsClient({
           VIEW 1: FRIENDS DIRECTORY (When no friend selected)
       ───────────────────────────────────────────────────────────── */}
       {!selectedFriend && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
           {/* Header */}
           <div style={styles.header}>
             <h1 style={styles.title}>Friends</h1>
@@ -599,7 +599,7 @@ export default function FriendsClient({
           </div>
 
           {/* Friends List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
                 Your Contacts ({friends.length})
@@ -624,7 +624,7 @@ export default function FriendsClient({
                 </button>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
                 {friends.map((friend) => {
                   const friendCurrs = Object.keys(friend.balances);
                   const hasBal = friendCurrs.some((c) => friend.balances[c] !== 0);
@@ -1743,22 +1743,22 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0.85rem 1rem",
-    gap: "0.75rem",
+    padding: "0.6rem 0.85rem",
+    gap: "0.6rem",
     cursor: "pointer",
-    minHeight: "56px",
+    minHeight: "48px",
     textDecoration: "none",
   },
   friendLeft: {
     display: "flex",
     alignItems: "center",
-    gap: "0.75rem",
+    gap: "0.6rem",
     flex: 1,
     minWidth: 0,
   },
   avatar: {
-    width: "40px",
-    height: "40px",
+    width: "36px",
+    height: "36px",
     borderRadius: "50%",
     background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
     color: "#fff",
@@ -1766,7 +1766,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 700,
-    fontSize: "1rem",
+    fontSize: "0.92rem",
     flexShrink: 0,
   },
   largeAvatar: {

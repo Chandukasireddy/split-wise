@@ -138,12 +138,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Floating Action Button (Splitwise Mobile FAB) */}
-      <Link href="/groups/new" className="splitwise-fab" title="Add group">
-        <Plus size={18} strokeWidth={2.5} />
-        <span>Add group</span>
-      </Link>
     </div>
   );
 }
