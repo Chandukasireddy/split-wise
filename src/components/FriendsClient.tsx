@@ -29,6 +29,7 @@ import {
 } from "@/app/actions/userActions";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
 import { settleUp } from "@/app/actions/settleActions";
+import { getAvatarGradient } from "@/lib/avatar";
 
 const CATEGORIES = [
   "General",
@@ -186,6 +187,56 @@ export default function FriendsClient({
       };
     }
   }, [isAnyModalOpen]);
+
+  // Handle open friend expense modal via URL query param or global event
+  useEffect(() => {
+    const handleFriendExpense = (friendId: string) => {
+      const found = friends.find((f) => f.id === friendId);
+      if (found) {
+        setSelectedFriend(found);
+        setExpenseDesc("");
+        setExpenseAmt("");
+        setExpenseCategory("General");
+        setExpenseCurrency("EUR");
+        setExpenseDate(new Date().toISOString().split("T")[0]);
+        setExpensePayerId(currentUser?.userId || "");
+        setSplitEqually(true);
+        setExpenseError(null);
+        setShowAddExpenseModal(true);
+      }
+    };
+
+    let timer: NodeJS.Timeout | undefined;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const friendId = params.get("friendId");
+      if (friendId) {
+        const isAddExpense = params.get("addExpense") === "true";
+        window.history.replaceState({}, "", window.location.pathname);
+        timer = setTimeout(() => {
+          if (isAddExpense) {
+            handleFriendExpense(friendId);
+          } else {
+            const found = friends.find((f) => f.id === friendId);
+            if (found) setSelectedFriend(found);
+          }
+        }, 0);
+      }
+    }
+
+    const eventHandler = (e: Event) => {
+      const custom = e as CustomEvent<{ friendId: string }>;
+      if (custom.detail?.friendId) {
+        handleFriendExpense(custom.detail.friendId);
+      }
+    };
+
+    window.addEventListener("open-friend-expense-modal", eventHandler);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("open-friend-expense-modal", eventHandler);
+    };
+  }, [friends, currentUser]);
 
   // Load ledger when selectedFriend changes
   useEffect(() => {

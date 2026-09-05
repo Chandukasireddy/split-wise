@@ -211,6 +211,29 @@ export default function GroupDetailsClient({
   // navigation while a group was open.
   const members = React.useMemo(() => group.members.map((m) => m.user), [group.members]);
 
+  // Handle open expense modal via query param or global event
+  React.useEffect(() => {
+    const handleOpenModal = () => {
+      setEditingExpenseId(null);
+      setExpensePayer(currentUser.userId);
+      setExpenseDate(new Date().toISOString().split("T")[0]);
+      setShowExpenseModal(true);
+    };
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("addExpense") === "true") {
+        handleOpenModal();
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+
+    window.addEventListener("open-group-expense-modal", handleOpenModal);
+    return () => {
+      window.removeEventListener("open-group-expense-modal", handleOpenModal);
+    };
+  }, [currentUser.userId]);
+
   // Pre-fill helper when split type changes
   React.useEffect(() => {
     const initial: Record<string, string> = {};

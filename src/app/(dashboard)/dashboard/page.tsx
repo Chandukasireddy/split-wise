@@ -129,6 +129,12 @@ export default async function DashboardPage() {
                 </Link>
               );
             })}
+            <div style={styles.addGroupContainer}>
+              <Link href="/groups/new" className="group-add-pill" title="Add group">
+                <Plus size={15} strokeWidth={2.2} />
+                <span>Add group</span>
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -252,4 +258,5 @@ const styles: Record<string, React.CSSProperties> = {
   settled: { fontSize: "0.72rem", color: "var(--text-muted)", background: "var(--surface-hover)", padding: "0.15rem 0.5rem", borderRadius: "20px" },
 
   emptyCard: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2.5rem 1.5rem", textAlign: "center" },
+  addGroupContainer: { display: "flex", justifyContent: "center", marginTop: "0.5rem", marginBottom: "0.25rem" },
 };

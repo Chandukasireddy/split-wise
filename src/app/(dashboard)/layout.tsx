@@ -7,6 +7,8 @@ import { Wallet, LogOut, Settings } from "lucide-react";
 import PWAInstallButton from "@/components/PWAInstallButton";
 import BottomNav from "@/components/BottomNav";
 import NavLinks from "@/components/NavLinks";
+import GlobalAddExpenseFab from "@/components/GlobalAddExpenseFab";
+import { getUserGroups, getFriends } from "@/app/actions/userActions";
 
 export default async function DashboardLayout({
   children,
@@ -18,6 +20,11 @@ export default async function DashboardLayout({
   if (!session) {
     redirect("/login");
   }
+
+  const [userGroups, userFriends] = await Promise.all([
+    getUserGroups(),
+    getFriends(),
+  ]);
 
   const displayName = session.username;
 
@@ -72,6 +79,13 @@ export default async function DashboardLayout({
       <main className="container dashboard-main" style={styles.mainContent}>
         {children}
       </main>
+
+      {/* Universal Sticky Add Expense Button & Modal */}
+      <GlobalAddExpenseFab
+        initialGroups={userGroups}
+        initialFriends={userFriends}
+        currentUserId={session.userId}
+      />
 
       {/* Mobile Bottom Nav (Client Component — handles Profile popup + logout) */}
       <BottomNav displayName={displayName} />

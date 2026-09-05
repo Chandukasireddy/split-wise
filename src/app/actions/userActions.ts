@@ -95,6 +95,7 @@ export interface FriendInfo {
 export interface GroupInfo {
   id: string;
   name: string;
+  memberCount?: number;
 }
 
 export interface FriendLedgerTransaction {
@@ -464,10 +465,16 @@ export async function getUserGroups(): Promise<GroupInfo[]> {
         select: {
           id: true,
           name: true,
+          _count: { select: { members: true } },
         },
       },
     },
   });
 
   return userGroups.map((g) => g.group);
+  return userGroups.map((g) => ({
+    id: g.group.id,
+    name: g.group.name,
+    memberCount: g.group._count?.members,
+  }));
 }
