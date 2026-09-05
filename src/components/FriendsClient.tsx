@@ -1652,7 +1652,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     gap: "0.65rem",
     padding: "0.65rem 1rem",
-    background: "#ffffff",
+    background: "var(--surface)",
     border: "1px solid var(--border-light)",
     borderRadius: "12px",
     boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
@@ -1883,7 +1883,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     border: "1px solid var(--border-light)",
     borderRadius: "14px",
-    background: "#ffffff",
+    background: "var(--card-bg)",
     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
   },
   expenseRow: {
@@ -1980,7 +1980,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "1rem",
   },
   modalCard: {
-    background: "#fff",
+    background: "var(--surface)",
     borderRadius: "16px",
     width: "100%",
     maxWidth: "480px",

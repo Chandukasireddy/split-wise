@@ -128,7 +128,7 @@ export default function ActivitiesClient({ logs, currentUserId }: Props) {
 const styles: Record<string, React.CSSProperties> = {
   list: { display: "flex", flexDirection: "column", gap: "1.25rem" },
   group: {
-    background: "#fff",
+    background: "var(--card-bg)",
     border: "1px solid var(--border-light)",
     borderRadius: "14px",
     overflow: "hidden",

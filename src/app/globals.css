@@ -40,12 +40,56 @@
   --card-border: #E5E7EB;
   --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --card-shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --input-bg: #FFFFFF;
+  --modal-bg: #FFFFFF;
+  --nav-border: rgba(0, 0, 0, 0.07);
   
   /* Layout */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+}
+
+[data-theme="dark"] {
+  /* Colors - Sleek Dark Theme */
+  --background-raw: 11, 15, 25;
+  --background: #0B0F19;
+  --surface-raw: 17, 24, 39;
+  --surface: #111827;
+  --surface-hover: #1E293B;
+  --input-bg: #1A2234;
+  
+  --primary-raw: 16, 185, 129;
+  --primary: #10B981;
+  --primary-hover: #34D399;
+  --primary-glow: rgba(16, 185, 129, 0.22);
+  
+  --secondary: #60A5FA;
+  --warning: #FBBF24;
+  
+  --owed-raw: 52, 211, 153;
+  --owed: #34D399;
+  --owed-glow: rgba(52, 211, 153, 0.16);
+  
+  --owes-raw: 248, 113, 113;
+  --owes: #F87171;
+  --owes-glow: rgba(248, 113, 113, 0.16);
+  
+  --text-primary: #F9FAFB;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  --border-light: #1E293B;
+  --border-focus: rgba(52, 211, 153, 0.45);
+  
+  /* Card Styling - Dark Mode Cards */
+  --card-bg: #111827;
+  --card-border: #1E293B;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --modal-bg: #111827;
+  --nav-border: rgba(255, 255, 255, 0.08);
 }
 
 /* Reset and Globals */
@@ -111,7 +155,7 @@ p {
 .form-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: #ffffff;
+  background: var(--input-bg);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   color: var(--text-primary);
@@ -169,7 +213,7 @@ p {
 }
 
 .btn-secondary {
-  background: #FFFFFF;
+  background: var(--surface);
   border: 1px solid var(--border-light);
   color: var(--text-primary);
 }
@@ -379,16 +423,13 @@ p {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  background: #ffffff;
+  background: var(--modal-bg);
   border: 1px solid var(--border-light);
   border-radius: 18px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  padding: 2rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
   padding: 1.75rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
   gap: 1.25rem;
 }
 
@@ -719,7 +760,7 @@ p {
 }
 
 .action-pill-btn:hover {
-  background: #ffffff;
+  background: var(--surface);
   border-color: var(--primary);
   color: var(--primary);
 }

@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/userActions";
 import { Pencil, X, CheckCircle2, AlertCircle, Loader2, LogOut, ShieldCheck, AtSign, User } from "lucide-react";
 import { signOut } from "@/app/actions/authActions";
+import ThemeSelector from "@/components/ThemeSelector";
 
 interface Profile { id: string; name: string; username: string; createdAt: Date; }
 type Status = { type: "success" | "error"; message: string } | null;
@@ -139,6 +140,15 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Theme / Appearance Settings */}
+      <div className="glass-card" style={styles.infoCard}>
+        <h2 style={{ ...styles.cardTitle, marginBottom: "0.2rem" }}>Appearance</h2>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "0.85rem" }}>
+          Choose your preferred theme for SplitEasy.
+        </p>
+        <ThemeSelector />
+      </div>
+
       {/* Logout */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <h2 style={{ ...styles.cardTitle, marginBottom: "0.875rem" }}>Session</h2>
@@ -222,7 +232,7 @@ const styles: Record<string, React.CSSProperties> = {
   cardTitle: { fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.25rem" },
   logoutBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.55rem 1.25rem", fontSize: "0.875rem", fontWeight: 600, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", borderRadius: "10px", cursor: "pointer" },
   overlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(5px)", WebkitBackdropFilter: "blur(5px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, padding: "0" },
-  modal: { width: "100%", maxWidth: "480px", borderRadius: "20px 20px 0 0", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem", background: "#fff", maxHeight: "90vh", overflowY: "auto" },
+  modal: { width: "100%", maxWidth: "480px", borderRadius: "20px 20px 0 0", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem", background: "var(--surface)", maxHeight: "90vh", overflowY: "auto" },
   modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   modalTitle: { fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" },
   closeBtn: { background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: "0.25rem", borderRadius: "6px" },

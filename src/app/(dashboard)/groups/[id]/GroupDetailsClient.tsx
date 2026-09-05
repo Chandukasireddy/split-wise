@@ -1107,7 +1107,7 @@ export default function GroupDetailsClient({
                     value={expenseDate}
                     onChange={(e) => setExpenseDate(e.target.value)}
                     className="form-input"
-                    style={{ background: "#f8fafc" }}
+                    style={{ background: "var(--input-bg)" }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -1117,7 +1117,7 @@ export default function GroupDetailsClient({
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value)}
                     className="form-input"
-                    style={{ background: "#f8fafc" }}
+                    style={{ background: "var(--input-bg)" }}
                   >
                     {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
@@ -1129,7 +1129,7 @@ export default function GroupDetailsClient({
                     value={expenseCurrency}
                     onChange={(e) => setExpenseCurrency(e.target.value)}
                     className="form-input"
-                    style={{ background: "#f8fafc" }}
+                    style={{ background: "var(--input-bg)" }}
                   >
                     {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -1169,7 +1169,7 @@ export default function GroupDetailsClient({
                     value={expensePayer}
                     onChange={(e) => setExpensePayer(e.target.value)}
                     className="form-input"
-                    style={{ background: "#f8fafc" }}
+                    style={{ background: "var(--input-bg)" }}
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -1185,7 +1185,7 @@ export default function GroupDetailsClient({
                     value={expenseSplitType}
                     onChange={(e) => setExpenseSplitType(e.target.value as "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES")}
                     className="form-input"
-                    style={{ background: "#f8fafc" }}
+                    style={{ background: "var(--input-bg)" }}
                   >
                     <option value="EQUAL">Equally</option>
                     <option value="UNEQUAL">Unequally (Exact amounts)</option>
@@ -1515,7 +1515,7 @@ export default function GroupDetailsClient({
                       value={settlePayer}
                       onChange={(e) => setSettlePayer(e.target.value)}
                       className="form-input"
-                      style={{ background: "#f8fafc" }}
+                      style={{ background: "var(--input-bg)" }}
                     >
                       {members.map((m) => (
                         <option key={m.id} value={m.id}>
@@ -1531,7 +1531,7 @@ export default function GroupDetailsClient({
                       value={settlePayee}
                       onChange={(e) => setSettlePayee(e.target.value)}
                       className="form-input"
-                      style={{ background: "#f8fafc" }}
+                      style={{ background: "var(--input-bg)" }}
                     >
                       {members.map((m) => (
                         <option key={m.id} value={m.id}>
@@ -1552,7 +1552,7 @@ export default function GroupDetailsClient({
                       value={settleDate}
                       onChange={(e) => setSettleDate(e.target.value)}
                       className="form-input"
-                      style={{ background: "#f8fafc" }}
+                      style={{ background: "var(--input-bg)" }}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -1575,7 +1575,7 @@ export default function GroupDetailsClient({
                       value={settleCurrency}
                       onChange={(e) => setSettleCurrency(e.target.value)}
                       className="form-input"
-                      style={{ background: "#f8fafc" }}
+                      style={{ background: "var(--input-bg)" }}
                     >
                       {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -1662,7 +1662,7 @@ export default function GroupDetailsClient({
                   value={settingsCurrency}
                   onChange={(e) => setSettingsCurrency(e.target.value)}
                   className="form-input"
-                  style={{ background: "#f8fafc" }}
+                  style={{ background: "var(--input-bg)" }}
                   disabled={settingsLoading}
                 >
                   {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -1935,7 +1935,7 @@ export default function GroupDetailsClient({
                     {memberSearchQuery.trim().length >= 2 && !memberSearching && memberSearchResults.length === 0 && (
                       <div style={{
                         position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                        background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
+                        background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: "10px",
                         padding: "0.6rem 0.875rem", fontSize: "0.82rem", color: "var(--text-muted)", zIndex: 20,
                         boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                       }}>
@@ -1945,7 +1945,7 @@ export default function GroupDetailsClient({
                     {memberSearchResults.length > 0 && (
                       <div style={{
                         position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-                        background: "#fff", border: "1px solid var(--border-light)", borderRadius: "10px",
+                        background: "var(--surface)", border: "1px solid var(--border-light)", borderRadius: "10px",
                         maxHeight: "180px", overflowY: "auto", zIndex: 20,
                         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                       }}>
@@ -2308,7 +2308,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     border: "1px solid var(--border-light)",
     borderRadius: "14px",
-    background: "#ffffff",
+    background: "var(--card-bg)",
     boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
   },
   expenseRow: {
