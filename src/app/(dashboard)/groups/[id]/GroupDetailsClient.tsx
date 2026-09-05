@@ -27,6 +27,7 @@ import {
   Film,
   Receipt,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -123,6 +124,7 @@ export default function GroupDetailsClient({
   
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<"expenses" | "debts" | "analytics">("expenses");
+  const [showDebtBreakdown, setShowDebtBreakdown] = useState(false);
   
   // Modals state
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -624,32 +626,19 @@ export default function GroupDetailsClient({
   return (
     <div style={styles.container} className="animate-fade-in">
 
-      {/* ── Top Header Bar ───────────────────────────────────── */}
-      <div style={styles.headerRow}>
-        <Link href="/dashboard" style={styles.headerCircleBtn} title="Back to Groups">
-          <ArrowLeft size={19} />
-        </Link>
-        <button
-          type="button"
-          onClick={() => {
-            setSettingsName(group.name);
-            setSettingsDesc(group.description || "");
-            setSettingsCurrency(group.defaultCurrency);
-            setSettingsSimplifyDebts(group.simplifyDebts ?? true);
-            setShowGroupSettingsModal(true);
-          }}
-          style={styles.headerCircleBtn}
-          title="Group Settings"
-        >
-          <Settings size={19} />
-        </button>
-      </div>
+      {/* ── Compact Top Header ───────────────────────────────── */}
+      <div style={styles.compactHeader}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.65rem", flex: 1, minWidth: 0 }}>
+          <Link href="/dashboard" style={styles.headerCircleBtn} title="Back to Groups">
+            <ArrowLeft size={18} />
+          </Link>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h1 style={styles.groupTitleCompact}>{group.name}</h1>
+            {group.description && <p style={styles.groupSubtitleCompact}>{group.description}</p>}
+          </div>
+        </div>
 
-      {/* ── Group Title & Members Pill ────────────────────────── */}
-      <div style={styles.titleSection}>
-        <h1 style={styles.groupTitleLarge}>{group.name}</h1>
-        {group.description && <p style={styles.groupSubtitle}>{group.description}</p>}
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.45rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => setShowAddMemberModal(true)}
@@ -662,21 +651,24 @@ export default function GroupDetailsClient({
           <button
             type="button"
             onClick={handleCSVExport}
-            className="group-pill-badge"
+            style={styles.headerCircleBtnSm}
             title="Export expenses to CSV"
           >
-            <FileDown size={14} />
-            <span>Export</span>
+            <FileDown size={15} />
           </button>
           <button
             type="button"
-            onClick={() => setShowDeleteGroupModal(true)}
-            className="group-pill-badge"
-            style={{ color: "#f43f5e" }}
-            title="Delete group"
+            onClick={() => {
+              setSettingsName(group.name);
+              setSettingsDesc(group.description || "");
+              setSettingsCurrency(group.defaultCurrency);
+              setSettingsSimplifyDebts(group.simplifyDebts ?? true);
+              setShowGroupSettingsModal(true);
+            }}
+            style={styles.headerCircleBtnSm}
+            title="Group Settings"
           >
-            <Trash2 size={13} />
-            <span>Delete</span>
+            <Settings size={15} />
           </button>
         </div>
       </div>
@@ -685,39 +677,61 @@ export default function GroupDetailsClient({
       <div className="glass-card" style={styles.balanceSummaryCard}>
         <div style={styles.balanceSummaryHeader}>
           {userNetBalance > 0.01 ? (
-            <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
+            <div style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text-primary)" }}>
               You are owed <span style={{ color: "var(--owed)" }}>{formatCurrency(userNetBalance, group.defaultCurrency)}</span> overall
             </div>
           ) : userNetBalance < -0.01 ? (
-            <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-primary)" }}>
+            <div style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text-primary)" }}>
               You owe <span style={{ color: "#f59e0b" }}>{formatCurrency(Math.abs(userNetBalance), group.defaultCurrency)}</span> overall
             </div>
           ) : (
-            <div style={{ fontSize: "0.98rem", fontWeight: 600, color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--text-secondary)" }}>
               You are all settled up in this group
             </div>
           )}
         </div>
 
-        {/* Indented person breakdown with vertical accent line */}
+        {/* Collapsible person breakdown with vertical accent line */}
         {(debtsOwedToUser.length > 0 || debtsUserOwes.length > 0) && (
-          <div style={styles.balanceBreakdownList}>
-            {debtsOwedToUser.map((debt) => (
-              <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
-                <span style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
-                  {debt.fromName} owes you{" "}
-                  <strong style={{ color: "var(--owed)" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
-                </span>
+          <div style={{ marginTop: "0.15rem" }}>
+            <button
+              type="button"
+              onClick={() => setShowDebtBreakdown((prev) => !prev)}
+              style={styles.debtDropdownToggle}
+            >
+              <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "var(--primary)" }}>
+                {showDebtBreakdown ? "Hide breakdown" : `View breakdown (${debtsOwedToUser.length + debtsUserOwes.length})`}
+              </span>
+              <ChevronDown
+                size={14}
+                color="var(--primary)"
+                style={{
+                  transform: showDebtBreakdown ? "rotate(180deg)" : "none",
+                  transition: "transform 0.2s ease",
+                }}
+              />
+            </button>
+
+            {showDebtBreakdown && (
+              <div style={styles.balanceBreakdownList}>
+                {debtsOwedToUser.map((debt) => (
+                  <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
+                    <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                      {debt.fromName} owes you{" "}
+                      <strong style={{ color: "var(--owed)" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
+                    </span>
+                  </div>
+                ))}
+                {debtsUserOwes.map((debt) => (
+                  <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
+                    <span style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                      You owe {debt.toName}{" "}
+                      <strong style={{ color: "#f59e0b" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {debtsUserOwes.map((debt) => (
-              <div key={`${debt.fromUserId}-${debt.toUserId}`} style={styles.balanceBreakdownItem}>
-                <span style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
-                  You owe {debt.toName}{" "}
-                  <strong style={{ color: "#f59e0b" }}>{formatCurrency(debt.amount, debt.currency)}</strong>
-                </span>
-              </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -1948,6 +1962,32 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     marginBottom: "0.85rem",
   },
+  compactHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "0.5rem",
+    marginBottom: "0.75rem",
+  },
+  groupTitleCompact: {
+    fontSize: "1.25rem",
+    fontWeight: 800,
+    color: "var(--text-primary)",
+    letterSpacing: "-0.02em",
+    margin: 0,
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  groupSubtitleCompact: {
+    fontSize: "0.78rem",
+    color: "var(--text-secondary)",
+    margin: "0.1rem 0 0 0",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
   headerCircleBtn: {
     width: "40px",
     height: "40px",
@@ -1960,6 +2000,31 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--text-primary)",
     cursor: "pointer",
     transition: "background 0.15s ease",
+    flexShrink: 0,
+  },
+  headerCircleBtnSm: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--text-primary)",
+    cursor: "pointer",
+    transition: "background 0.15s ease",
+    flexShrink: 0,
+  },
+  debtDropdownToggle: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    padding: "0.2rem 0",
+    marginBottom: "0.35rem",
   },
   /* ── Title & Quick Badges ── */
   titleSection: {

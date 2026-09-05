@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, UserCheck, Activity, User } from "lucide-react";
+import { Users, User, Activity, CircleUser } from "lucide-react";
 
 interface BottomNavProps {
   displayName: string;
@@ -11,9 +11,9 @@ interface BottomNavProps {
 
 const navItems = [
   { href: "/dashboard",  label: "Groups",   icon: Users },
-  { href: "/friends",    label: "Friends",  icon: UserCheck },
+  { href: "/friends",    label: "Friends",  icon: User },
   { href: "/activities", label: "Activity", icon: Activity },
-  { href: "/profile",    label: "Profile",  icon: User },
+  { href: "/profile",    label: "Profile",  icon: CircleUser },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

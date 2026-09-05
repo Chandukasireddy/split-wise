@@ -29,14 +29,7 @@ export default async function DashboardPage() {
     <div style={styles.page} className="animate-fade-in">
       {/* Header */}
       <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>Groups</h1>
-          <p style={styles.subtitle}>Manage your groups and split bills with ease.</p>
-        </div>
-        <Link href="/groups/new" className="btn btn-primary" style={styles.createBtn}>
-          <Plus size={16} />
-          New Group
-        </Link>
+        <h1 style={styles.title}>Groups</h1>
       </div>
 
       {/* Balance Summary — Single Compact Line with Up & Down Arrows */}
@@ -139,6 +132,12 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button (Splitwise Mobile FAB) */}
+      <Link href="/groups/new" className="splitwise-fab" title="Add group">
+        <Plus size={18} strokeWidth={2.5} />
+        <span>Add group</span>
+      </Link>
     </div>
   );
 }

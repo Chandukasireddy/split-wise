@@ -3,11 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, UserCheck, Activity } from "lucide-react";
+import { Users, User, Activity } from "lucide-react";
 
 const links = [
   { href: "/dashboard", label: "Groups",   icon: Users },
-  { href: "/friends",   label: "Friends",  icon: UserCheck },
+  { href: "/friends",   label: "Friends",  icon: User },
   { href: "/activities",label: "Activity", icon: Activity },
 ];
 

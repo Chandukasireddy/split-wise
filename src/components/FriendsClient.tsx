@@ -64,6 +64,27 @@ function getCategoryIcon(cat: string, size = 16) {
   }
 }
 
+const AVATAR_GRADIENTS = [
+  "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
+  "linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%)",
+  "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+  "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+  "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)",
+  "linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)",
+  "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
+  "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+  "linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)",
+  "linear-gradient(135deg, #84cc16 0%, #16a34a 100%)",
+];
+
+function getAvatarGradient(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
+
 function formatCurrency(amount: number, currency: string = "EUR") {
   return new Intl.NumberFormat("en-EU", { style: "currency", currency }).format(amount);
 }
@@ -88,11 +109,11 @@ export default function FriendsClient({
   const [friends, setFriends] = useState<FriendInfo[]>(initialFriends);
   const [selectedFriend, setSelectedFriend] = useState<FriendInfo | null>(null);
 
-  // Search for any user
+  // Search / Add friend modal state
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ id: string; name: string; username: string }[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
 
   // Selected friend's ledger state
   const [ledger, setLedger] = useState<FriendLedgerData | null>(null);
@@ -245,7 +266,6 @@ export default function FriendsClient({
     }
     setSearchQuery("");
     setSearchResults([]);
-    setSearchFocused(false);
   }
 
   // Open Settle Up modal pre-filled
@@ -521,13 +541,6 @@ export default function FriendsClient({
   const primaryCurrency = currs[0] || "EUR";
   const primaryNet = friendBalances[primaryCurrency] || 0;
 
-  // Filtered friends in directory view
-  const filteredFriends = friends.filter((f) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return f.name.toLowerCase().includes(q) || f.username.toLowerCase().includes(q);
-  });
-
   return (
     <div style={styles.container} className="animate-fade-in">
       {/* ─────────────────────────────────────────────────────────────
@@ -537,91 +550,50 @@ export default function FriendsClient({
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
           {/* Header */}
           <div style={styles.header}>
-            <div>
-              <h1 style={styles.title}>Friends</h1>
-              <p style={styles.subtitle}>Direct 1-on-1 transactions and debts.</p>
-            </div>
-          </div>
-
-          {/* User Search Bar */}
-          <div style={{ position: "relative" }}>
-            <div style={styles.searchBarWrapper}>
-              <Search size={18} color="var(--text-muted)" />
-              <input
-                type="text"
-                placeholder="Search by name or username to start splitting…"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                style={styles.searchInput}
-              />
-              {searching && (
-                <span style={{ fontSize: "0.75rem", color: "var(--primary)", flexShrink: 0 }}>
-                  searching…
-                </span>
-              )}
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSearchResults([]);
-                  }}
-                  style={styles.clearSearchBtn}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            {/* Live User Search Dropdown */}
-            {searchFocused && searchResults.length > 0 && (
-              <div style={styles.searchDropdown} className="glass-card">
-                <div style={styles.searchDropdownHeader}>Registered Users</div>
-                {searchResults.map((user) => (
-                  <div
-                    key={user.id}
-                    onClick={() => handleSelectUser(user)}
-                    style={styles.searchResultItem}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--surface-hover)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
-                    <div style={styles.searchResultAvatar}>
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={styles.searchResultName}>{user.name}</div>
-                      <div style={styles.searchResultUsername}>@{user.username}</div>
-                    </div>
-                    <div style={styles.startTransBtn}>
-                      <span>Split 1-on-1</span>
-                      <ChevronRight size={14} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <h1 style={styles.title}>Friends</h1>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setSearchResults([]);
+                setShowAddFriendModal(true);
+              }}
+              className="btn btn-primary"
+              style={styles.addFriendBtn}
+            >
+              <UserPlus size={16} />
+              <span>Add friend</span>
+            </button>
           </div>
 
           {/* Friends List */}
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                Your Contacts ({filteredFriends.length})
+                Your Contacts ({friends.length})
               </h2>
             </div>
 
-            {filteredFriends.length === 0 ? (
+            {friends.length === 0 ? (
               <div className="glass-card" style={styles.emptyCard}>
                 <Sparkles size={40} color="var(--text-muted)" style={{ marginBottom: "0.85rem" }} />
                 <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "0.35rem" }}>No friends added yet</h3>
                 <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", maxWidth: "320px", marginBottom: "1rem" }}>
-                  Search any registered username above to start direct 1-on-1 transactions.
+                  Add friends to start direct 1-on-1 transactions and debts.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setShowAddFriendModal(true)}
+                  className="btn btn-primary"
+                  style={{ fontSize: "0.85rem", padding: "0.55rem 1.15rem", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                >
+                  <UserPlus size={15} />
+                  <span>Add a Friend</span>
+                </button>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {filteredFriends.map((friend) => {
+                {friends.map((friend) => {
                   const friendCurrs = Object.keys(friend.balances);
                   const hasBal = friendCurrs.some((c) => friend.balances[c] !== 0);
 
@@ -635,19 +607,11 @@ export default function FriendsClient({
                       tabIndex={0}
                     >
                       <div style={styles.friendLeft}>
-                        <div style={styles.avatar}>
+                        <div style={{ ...styles.avatar, background: getAvatarGradient(friend.id || friend.name) }}>
                           {friend.name.charAt(0).toUpperCase()}
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <h3 style={styles.friendName}>{friend.name}</h3>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.15rem" }}>
-                            <span style={styles.friendUsername}>@{friend.username}</span>
-                            {friend.sharedGroups.slice(0, 2).map((g, i) => (
-                              <span key={i} className="badge" style={styles.groupBadge}>
-                                {g}
-                              </span>
-                            ))}
-                          </div>
                         </div>
                       </div>
 
@@ -694,96 +658,81 @@ export default function FriendsClient({
           VIEW 2: 1-ON-1 TRANSACTION LEDGER (When friend is selected)
       ───────────────────────────────────────────────────────────── */}
       {selectedFriend && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
-          {/* Top Bar Navigation */}
-          <div style={styles.ledgerHeaderRow}>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedFriend(null);
-                setLedger(null);
-              }}
-              style={styles.backBtn}
-              title="Back to all friends"
-            >
-              <ArrowLeft size={18} />
-              <span>Friends</span>
-            </button>
-
-            {userGroups.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
+          {/* Top Compact Navigation & Balance Bar */}
+          <div style={styles.compactLedgerBar} className="glass-card">
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: 0 }}>
               <button
                 type="button"
                 onClick={() => {
-                  setGroupSuccess(null);
-                  setGroupError(null);
-                  setShowAddToGroupModal(true);
+                  setSelectedFriend(null);
+                  setLedger(null);
                 }}
-                className="group-pill-badge"
-                title="Add to a group"
+                style={styles.backCircleBtn}
+                title="Back to all friends"
               >
-                <UserPlus size={14} />
-                <span>Add to group</span>
+                <ArrowLeft size={18} />
               </button>
-            )}
-          </div>
 
-          {/* Friend Profile & 1-on-1 Title */}
-          <div style={styles.friendProfileCard} className="glass-card">
-            <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
-              <div style={styles.largeAvatar}>
+              <div
+                style={{
+                  ...styles.avatar,
+                  width: "38px",
+                  height: "38px",
+                  fontSize: "1rem",
+                  background: getAvatarGradient(selectedFriend.id || selectedFriend.name),
+                }}
+              >
                 {selectedFriend.name.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <h1 style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h1 style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {selectedFriend.name}
                 </h1>
-                <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: "0.1rem" }}>
-                  @{selectedFriend.username}
-                </p>
+                <div style={{ fontSize: "0.78rem", fontWeight: 700, marginTop: "0.1rem" }}>
+                  {primaryNet > 0.01 ? (
+                    <span style={{ color: "var(--owed)" }}>
+                      owes you {formatCurrency(primaryNet, primaryCurrency)}
+                    </span>
+                  ) : primaryNet < -0.01 ? (
+                    <span style={{ color: "#f59e0b" }}>
+                      you owe {formatCurrency(Math.abs(primaryNet), primaryCurrency)}
+                    </span>
+                  ) : (
+                    <span style={{ color: "var(--text-muted)" }}>settled up</span>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Direct Balance Status Banner */}
-            <div style={styles.ledgerBalanceBanner}>
-              {primaryNet > 0.01 ? (
-                <div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--owed)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Balance Status
-                  </div>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--owed)" }}>
-                    {selectedFriend.name} owes you {formatCurrency(primaryNet, primaryCurrency)}
-                  </div>
-                </div>
-              ) : primaryNet < -0.01 ? (
-                <div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Balance Status
-                  </div>
-                  <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#f59e0b" }}>
-                    You owe {selectedFriend.name} {formatCurrency(Math.abs(primaryNet), primaryCurrency)}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Balance Status
-                  </div>
-                  <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-secondary)" }}>
-                    You are all settled up with {selectedFriend.name}
-                  </div>
-                </div>
-              )}
-
-              {/* Settle Up Action Button */}
+            <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={openSettleUpModal}
-                style={styles.settleUpBtn}
+                style={styles.compactSettleBtn}
                 title="Record a payment with this friend"
               >
-                <PiggyBank size={16} />
+                <PiggyBank size={14} />
                 <span>Settle up</span>
               </button>
+
+              {userGroups.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGroupSuccess(null);
+                    setGroupError(null);
+                    setShowAddToGroupModal(true);
+                  }}
+                  className="group-pill-badge"
+                  style={{ padding: "0.4rem 0.65rem", fontSize: "0.78rem" }}
+                  title="Add to a group"
+                >
+                  <UserPlus size={13} />
+                  <span>Group</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1491,6 +1440,106 @@ export default function FriendsClient({
         </div>,
         document.body
       )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL 6: ADD A FRIEND (Search registered users)
+      ───────────────────────────────────────────────────────────── */}
+      {showAddFriendModal && typeof document !== "undefined" && createPortal(
+        <div style={styles.modalOverlay}>
+          <div className="glass-card" style={styles.modalCard}>
+            <div style={styles.modalHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <UserPlus size={20} color="var(--primary)" />
+                <h3 style={styles.modalTitle}>Add a Friend</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddFriendModal(false);
+                  setSearchQuery("");
+                  setSearchResults([]);
+                }}
+                style={styles.closeBtn}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+              Search registered users by name or username to start direct 1-on-1 transactions.
+            </p>
+
+            <div style={{ position: "relative", marginBottom: "1rem" }}>
+              <div style={styles.searchBarWrapper}>
+                <Search size={18} color="var(--text-muted)" />
+                <input
+                  type="text"
+                  placeholder="Search name or username…"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  autoFocus
+                  style={styles.searchInput}
+                />
+                {searching && (
+                  <span style={{ fontSize: "0.75rem", color: "var(--primary)", flexShrink: 0 }}>
+                    searching…
+                  </span>
+                )}
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                    style={styles.clearSearchBtn}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "280px", overflowY: "auto" }}>
+              {searchResults.length > 0 ? (
+                searchResults.map((user) => (
+                  <div
+                    key={user.id}
+                    onClick={() => {
+                      handleSelectUser(user);
+                      setShowAddFriendModal(false);
+                    }}
+                    style={styles.searchResultItem}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--surface-hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    <div style={{ ...styles.searchResultAvatar, background: getAvatarGradient(user.id || user.name) }}>
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={styles.searchResultName}>{user.name}</div>
+                      <div style={styles.searchResultUsername}>@{user.username}</div>
+                    </div>
+                    <div style={styles.startTransBtn}>
+                      <span>Split 1-on-1</span>
+                      <ChevronRight size={14} />
+                    </div>
+                  </div>
+                ))
+              ) : searchQuery.trim() ? (
+                <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                  No users found matching &quot;{searchQuery}&quot;
+                </div>
+              ) : (
+                <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                  Type a name or username above to find people
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -1508,6 +1557,50 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     flexWrap: "wrap",
     gap: "0.75rem",
+  },
+  addFriendBtn: {
+    padding: "0.5rem 0.95rem",
+    fontSize: "0.85rem",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+  },
+  compactLedgerBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0.75rem 1rem",
+    gap: "0.75rem",
+    borderRadius: "12px",
+  },
+  backCircleBtn: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--text-primary)",
+    cursor: "pointer",
+    flexShrink: 0,
+    transition: "background 0.15s ease",
+  },
+  compactSettleBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    background: "var(--primary)",
+    color: "#fff",
+    border: "none",
+    padding: "0.45rem 0.85rem",
+    borderRadius: "8px",
+    fontSize: "0.8rem",
+    fontWeight: 700,
+    cursor: "pointer",
+    flexShrink: 0,
+    transition: "transform 0.1s ease",
   },
   title: {
     fontSize: "1.5rem",
