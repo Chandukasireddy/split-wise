@@ -1,498 +1,525 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  PieChart,
-  ArrowUpRight,
-  TrendingDown,
-  Users,
-  Info,
+  Calendar,
   Layers,
-  Sparkles,
+  ArrowUpRight,
+  UserCheck,
+  CheckCircle2,
 } from "lucide-react";
-import { PersonalSpendingSummary } from "@/app/actions/spendingActions";
+import { PersonalSpendingSummary, MonthSpend } from "@/app/actions/spendingActions";
 
 interface Props {
   summary: PersonalSpendingSummary;
 }
 
 export default function SpendingClient({ summary }: Props) {
-  const [activeTab, setActiveTab] = useState<"overview" | "categories" | "transactions">("overview");
-
-  function formatCurrency(amount: number, currency = summary.currency) {
-    return new Intl.NumberFormat("en-EU", {
-      style: "currency",
-      currency,
-    }).format(amount);
-  }
-
   const {
-    actualExpenditure,
-    bankOutflow,
-    paidForOthers,
-    reimbursementsReceived,
+    currency,
+    actualExpenditure: totalActual,
+    bankOutflow: totalOutflow,
+    paidForOthers: totalPaidOthers,
     netReceivables,
-    categories,
+    monthlyTrends,
     recentTransactions,
   } = summary;
 
+  // Selected month filter: "all" or specific month key like "2026-09"
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>("all");
+
+  // Helper currency formatter
+  function formatCurrency(amount: number) {
+    return new Intl.NumberFormat("en-EU", {
+      style: "currency",
+      currency: currency || "EUR",
+    }).format(amount);
+  }
+
+  // Filter transactions based on selected month
+  const filteredTransactions = useMemo(() => {
+    if (selectedMonthKey === "all") return recentTransactions;
+    return recentTransactions.filter((tx) => {
+      const d = new Date(tx.date);
+      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      return key === selectedMonthKey;
+    });
+  }, [recentTransactions, selectedMonthKey]);
+
+  // Compute month-specific metrics dynamically
+  const activeMetrics = useMemo(() => {
+    if (selectedMonthKey === "all") {
+      return {
+        actualSpend: totalActual,
+        bankOutflow: totalOutflow,
+        paidForOthers: totalPaidOthers,
+        label: "All Time",
+      };
+    }
+
+    const monthData = monthlyTrends.find((m) => m.key === selectedMonthKey);
+    if (monthData) {
+      return {
+        actualSpend: monthData.actualSpend,
+        bankOutflow: monthData.bankOutflow,
+        paidForOthers: monthData.paidForOthers,
+        label: monthData.label,
+      };
+    }
+
+    // Fallback computed from filtered transactions
+    let actual = 0;
+    let outflow = 0;
+    let paidOthers = 0;
+    filteredTransactions.forEach((tx) => {
+      actual += tx.userShare;
+      if (tx.isPayer) {
+        outflow += tx.totalExpenseAmount;
+        paidOthers += tx.lentAmount;
+      }
+    });
+
+    return {
+      actualSpend: actual,
+      bankOutflow: outflow,
+      paidForOthers: paidOthers,
+      label: selectedMonthKey,
+    };
+  }, [selectedMonthKey, totalActual, totalOutflow, totalPaidOthers, monthlyTrends, filteredTransactions]);
+
+  // Compute category breakdown for the selected period
+  const activeCategories = useMemo(() => {
+    const map: Record<string, number> = {};
+    let total = 0;
+
+    filteredTransactions.forEach((tx) => {
+      const cat = tx.category || "General";
+      map[cat] = (map[cat] || 0) + tx.userShare;
+      total += tx.userShare;
+    });
+
+    const categoryEmojis: Record<string, string> = {
+      Food: "🍔",
+      "Food & Dining": "🍔",
+      "Food & Drink": "🍔",
+      Travel: "✈️",
+      "Travel & Transport": "✈️",
+      Transportation: "🚗",
+      Utilities: "💡",
+      "Utilities & Bills": "💡",
+      Entertainment: "🎬",
+      Housing: "🏠",
+      General: "📦",
+      Other: "🏷️",
+    };
+
+    const categoryColors: Record<string, string> = {
+      Food: "#00d09c",
+      "Food & Dining": "#00d09c",
+      "Food & Drink": "#00d09c",
+      Travel: "#387ed1",
+      "Travel & Transport": "#387ed1",
+      Transportation: "#387ed1",
+      Utilities: "#06b6d4",
+      "Utilities & Bills": "#06b6d4",
+      Entertainment: "#ec4899",
+      Housing: "#8b5cf6",
+      General: "#f59e0b",
+      Other: "#64748b",
+    };
+
+    return Object.entries(map)
+      .map(([name, amount]) => ({
+        name,
+        amount: parseFloat(amount.toFixed(2)),
+        percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
+        emoji: categoryEmojis[name] || "🏷️",
+        color: categoryColors[name] || "#00d09c",
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [filteredTransactions]);
+
+  const spendRatio = activeMetrics.bankOutflow > 0
+    ? Math.min(100, Math.round((activeMetrics.actualSpend / activeMetrics.bankOutflow) * 100))
+    : 100;
+
   return (
-    <div style={styles.page} className="animate-fade-in">
-      {/* Header */}
-      <div style={styles.header}>
+    <div style={styles.container} className="animate-fade-in">
+      {/* Compact Top Header */}
+      <div style={styles.headerRow}>
         <div>
-          <h1 style={styles.title}>Personal Spending</h1>
-          <p style={styles.subtitle}>
-            True consumption reconciled with shared bills & cash flow
-          </p>
+          <h1 style={styles.title}>Spending & Outflow</h1>
+          <p style={styles.subtitle}>True consumption vs gross bank outflow</p>
         </div>
+
+        {netReceivables > 0 && (
+          <div style={styles.receivableBadge} title="Total money currently owed to you across groups">
+            <span style={styles.receivableDot} />
+            <span>+{formatCurrency(netReceivables)} owed to you</span>
+          </div>
+        )}
       </div>
 
-      {/* The Core Reconciliation Equation Card */}
-      <div className="glass-card" style={styles.equationCard}>
-        <div style={styles.equationHeader}>
-          <div style={styles.badgeEquation}>
-            <Sparkles size={14} />
-            <span>Dual-Ledger Reconciliation</span>
-          </div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-            Money Flow ≠ Actual Expenditure
-          </div>
-        </div>
-
-        <div style={styles.equationVisual}>
-          <div style={styles.equationItem}>
-            <span style={styles.equationLabel}>Actual Expenditure</span>
-            <span style={styles.equationValPrimary}>
-              {formatCurrency(actualExpenditure)}
-            </span>
-            <span style={styles.equationSub}>Your true consumption</span>
-          </div>
-
-          <div style={styles.equationOperator}>+</div>
-
-          <div style={styles.equationItem}>
-            <span style={styles.equationLabel}>Lent to Others</span>
-            <span style={styles.equationValLent}>
-              {formatCurrency(paidForOthers)}
-            </span>
-            <span style={styles.equationSub}>Temporarily fronted</span>
-          </div>
-
-          <div style={styles.equationOperator}>=</div>
-
-          <div style={styles.equationItem}>
-            <span style={styles.equationLabel}>Total Outflow</span>
-            <span style={styles.equationValTotal}>
-              {formatCurrency(bankOutflow)}
-            </span>
-            <span style={styles.equationSub}>Money left your pocket</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 Summary Metric Cards */}
-      <div style={styles.metricsGrid}>
-        {/* Card 1: Actual Spend */}
-        <div className="glass-card" style={styles.metricCard}>
-          <div style={styles.metricTop}>
-            <span style={styles.metricLabel}>Actual Consumption</span>
-            <div style={{ ...styles.metricIconWrap, background: "rgba(16, 185, 129, 0.12)", color: "#10b981" }}>
-              <TrendingDown size={17} />
-            </div>
-          </div>
-          <div style={styles.metricAmount}>
-            {formatCurrency(actualExpenditure)}
-          </div>
-          <div style={styles.metricFooter}>
-            Only what was consumed by you
-          </div>
-        </div>
-
-        {/* Card 2: Bank Outflow */}
-        <div className="glass-card" style={styles.metricCard}>
-          <div style={styles.metricTop}>
-            <span style={styles.metricLabel}>Total Outflow</span>
-            <div style={{ ...styles.metricIconWrap, background: "rgba(59, 130, 246, 0.12)", color: "#3b82f6" }}>
-              <ArrowUpRight size={17} />
-            </div>
-          </div>
-          <div style={styles.metricAmount}>
-            {formatCurrency(bankOutflow)}
-          </div>
-          <div style={styles.metricFooter}>
-            Includes full bills paid for groups
-          </div>
-        </div>
-
-        {/* Card 3: Paid for Others */}
-        <div className="glass-card" style={styles.metricCard}>
-          <div style={styles.metricTop}>
-            <span style={styles.metricLabel}>Paid for Others</span>
-            <div style={{ ...styles.metricIconWrap, background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b" }}>
-              <Users size={17} />
-            </div>
-          </div>
-          <div style={styles.metricAmount}>
-            {formatCurrency(paidForOthers)}
-          </div>
-          <div style={styles.metricFooter}>
-            Money you are to be reimbursed
-          </div>
-        </div>
-
-        {/* Card 4: Net Receivables */}
-        <div className="glass-card" style={styles.metricCard}>
-          <div style={styles.metricTop}>
-            <span style={styles.metricLabel}>Currently Owed to You</span>
-            <div style={{ ...styles.metricIconWrap, background: "rgba(139, 92, 246, 0.12)", color: "#8b5cf6" }}>
-              <Layers size={17} />
-            </div>
-          </div>
-          <div style={styles.metricAmount}>
-            {formatCurrency(netReceivables)}
-          </div>
-          <div style={styles.metricFooter}>
-            {reimbursementsReceived > 0
-              ? `${formatCurrency(reimbursementsReceived)} reimbursed so far`
-              : "Outstanding from friends"}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs Switcher */}
-      <div style={styles.tabsRow}>
+      {/* Month-wise Filter Bar (Groww / Broker style horizontal pills) */}
+      <div style={styles.monthScrollWrap} className="tabs-scroll">
         <button
           type="button"
-          onClick={() => setActiveTab("overview")}
-          className={`action-pill-btn ${activeTab === "overview" ? "active" : ""}`}
+          onClick={() => setSelectedMonthKey("all")}
+          style={{
+            ...styles.monthPill,
+            ...(selectedMonthKey === "all" ? styles.monthPillActive : {}),
+          }}
         >
-          <span>Overview</span>
+          All Time
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("categories")}
-          className={`action-pill-btn ${activeTab === "categories" ? "active" : ""}`}
-        >
-          <span>Categories ({categories.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("transactions")}
-          className={`action-pill-btn ${activeTab === "transactions" ? "active" : ""}`}
-        >
-          <span>Recent ({recentTransactions.length})</span>
-        </button>
+
+        {monthlyTrends.map((m: MonthSpend) => (
+          <button
+            key={m.key}
+            type="button"
+            onClick={() => setSelectedMonthKey(m.key)}
+            style={{
+              ...styles.monthPill,
+              ...(selectedMonthKey === m.key ? styles.monthPillActive : {}),
+            }}
+          >
+            <span>{m.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Tab 1: Overview */}
-      {activeTab === "overview" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Explanation Banner */}
-          <div className="glass-card" style={styles.explainerCard}>
-            <Info size={18} color="var(--primary)" style={{ flexShrink: 0, marginTop: "0.1rem" }} />
-            <div style={{ fontSize: "0.82rem", lineHeight: 1.45, color: "var(--text-secondary)" }}>
-              <strong style={{ color: "var(--text-primary)" }}>Why bank statements lie:</strong> When you pay €100 for a shared group meal with 4 roommates, banking apps mark €100 as your spending. Here, your actual spending is recorded as exactly <strong>€25</strong>, while the remaining <strong>€75</strong> is tracked as money lent.
+      {/* Unified Portfolio Summary Card (Single Source of Truth, No Repetition) */}
+      <div className="glass-card" style={styles.heroCard}>
+        <div style={styles.heroTopRow}>
+          <div>
+            <div style={styles.heroLabel}>
+              {activeMetrics.label} Actual Spend
+            </div>
+            <div style={styles.heroAmount}>
+              {formatCurrency(activeMetrics.actualSpend)}
             </div>
           </div>
 
-          {/* Top Category Spending Bars */}
-          <div className="glass-card" style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>
-                <PieChart size={16} color="var(--primary)" />
-                Actual Consumption by Category
-              </h2>
-            </div>
+          <div style={styles.ratioPill}>
+            <span>{spendRatio}% of outflow</span>
+          </div>
+        </div>
 
-            {categories.length === 0 ? (
-              <div style={styles.emptyState}>No spending recorded yet.</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-                {categories.slice(0, 5).map((cat) => (
-                  <div key={cat.category} style={styles.catItem}>
-                    <div style={styles.catTopRow}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
-                        <span>{cat.emoji}</span>
-                        <span style={styles.catName}>{cat.category}</span>
-                      </div>
-                      <div style={styles.catAmountWrap}>
-                        <span style={styles.catAmount}>{formatCurrency(cat.actualAmount)}</span>
-                        <span style={styles.catPercent}>{cat.percentage}%</span>
-                      </div>
-                    </div>
-                    {/* Progress bar */}
-                    <div style={styles.progressBarBg}>
-                      <div
-                        style={{
-                          ...styles.progressBarFill,
-                          width: `${Math.max(4, cat.percentage)}%`,
-                          background: cat.color,
-                        }}
-                      />
-                    </div>
+        <div style={styles.heroDivider} />
+
+        {/* 3-Column Reconciliation Metrics Strip */}
+        <div style={styles.stripGrid}>
+          <div style={styles.stripCol}>
+            <span style={styles.stripLabel}>Gross Outflow</span>
+            <span style={styles.stripValue}>
+              {formatCurrency(activeMetrics.bankOutflow)}
+            </span>
+            <span style={styles.stripHint}>Left your accounts</span>
+          </div>
+
+          <div style={styles.stripDivider} />
+
+          <div style={styles.stripCol}>
+            <span style={styles.stripLabel}>Paid for Others</span>
+            <span style={{ ...styles.stripValue, color: "#f59e0b" }}>
+              {formatCurrency(activeMetrics.paidForOthers)}
+            </span>
+            <span style={styles.stripHint}>Fronted on bills</span>
+          </div>
+
+          <div style={styles.stripDivider} />
+
+          <div style={styles.stripCol}>
+            <span style={styles.stripLabel}>Lent Recovered</span>
+            <span style={{ ...styles.stripValue, color: "var(--primary)" }}>
+              {formatCurrency(Math.max(0, activeMetrics.bankOutflow - activeMetrics.actualSpend))}
+            </span>
+            <span style={styles.stripHint}>Shared portions</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Breakdown (Month-Specific) */}
+      <div className="glass-card" style={styles.cardSection}>
+        <div style={styles.sectionHeader}>
+          <div style={styles.sectionTitle}>
+            <Layers size={15} color="var(--primary)" />
+            <span>Category Spending</span>
+          </div>
+          <span style={styles.countBadge}>
+            {activeCategories.length} {activeCategories.length === 1 ? "category" : "categories"}
+          </span>
+        </div>
+
+        {activeCategories.length === 0 ? (
+          <div style={styles.emptyState}>No spending recorded for this period</div>
+        ) : (
+          <div style={styles.catList}>
+            {activeCategories.map((cat) => (
+              <div key={cat.name} style={styles.catItem}>
+                <div style={styles.catRow}>
+                  <div style={styles.catLeft}>
+                    <span style={styles.catEmoji}>{cat.emoji}</span>
+                    <span style={styles.catName}>{cat.name}</span>
+                    <span style={styles.catPercentBadge}>{cat.percentage}%</span>
                   </div>
-                ))}
+                  <span style={styles.catAmount}>{formatCurrency(cat.amount)}</span>
+                </div>
+
+                {/* Slim 4px progress bar */}
+                <div style={styles.barBg}>
+                  <div
+                    style={{
+                      ...styles.barFill,
+                      width: `${cat.percentage}%`,
+                      backgroundColor: cat.color,
+                    }}
+                  />
+                </div>
               </div>
-            )}
+            ))}
           </div>
+        )}
+      </div>
+
+      {/* Reconciled Transaction Ledger (Month-Specific) */}
+      <div className="glass-card" style={styles.cardSection}>
+        <div style={styles.sectionHeader}>
+          <div style={styles.sectionTitle}>
+            <Calendar size={15} color="var(--primary)" />
+            <span>Transactions ({filteredTransactions.length})</span>
+          </div>
+          <span style={styles.periodBadge}>{activeMetrics.label}</span>
         </div>
-      )}
 
-      {/* Tab 2: Categories Detailed */}
-      {activeTab === "categories" && (
-        <div className="glass-card" style={styles.sectionCard}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>All Spending Categories</h2>
-            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-              Total: {formatCurrency(actualExpenditure)}
-            </span>
-          </div>
+        {filteredTransactions.length === 0 ? (
+          <div style={styles.emptyState}>No transactions recorded for this period</div>
+        ) : (
+          <div style={styles.txList}>
+            {filteredTransactions.map((tx) => {
+              const d = new Date(tx.date);
+              const dateStr = d.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                timeZone: "UTC",
+              });
 
-          {categories.length === 0 ? (
-            <div style={styles.emptyState}>No expenses recorded yet.</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              {categories.map((cat) => (
-                <div key={cat.category} style={styles.catItem}>
-                  <div style={styles.catTopRow}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <span style={{ fontSize: "1.1rem" }}>{cat.emoji}</span>
-                      <span style={styles.catName}>{cat.category}</span>
-                    </div>
-                    <div style={styles.catAmountWrap}>
-                      <span style={styles.catAmount}>{formatCurrency(cat.actualAmount)}</span>
-                      <span style={styles.catPercent}>{cat.percentage}% of total</span>
+              return (
+                <div key={tx.id} style={styles.txItem}>
+                  <div style={styles.txLeft}>
+                    <div style={styles.txDate}>{dateStr}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={styles.txDesc}>{tx.description}</div>
+                      <div style={styles.txMeta}>
+                        {tx.groupName ? (
+                          <span style={styles.groupBadge}>{tx.groupName}</span>
+                        ) : (
+                          <span style={styles.directBadge}>Direct</span>
+                        )}
+                        <span style={styles.payerHint}>
+                          {tx.isPayer ? (
+                            <span style={{ color: "var(--primary)" }}>
+                              <CheckCircle2 size={11} style={{ display: "inline", marginRight: "3px" }} />
+                              You paid {formatCurrency(tx.totalExpenseAmount)}
+                            </span>
+                          ) : (
+                            <span>Paid by {tx.payerName}</span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div style={styles.progressBarBg}>
-                    <div
-                      style={{
-                        ...styles.progressBarFill,
-                        width: `${Math.max(4, cat.percentage)}%`,
-                        background: cat.color,
-                      }}
-                    />
+
+                  {/* Right: Your True Share vs Gross */}
+                  <div style={styles.txRight}>
+                    <div style={styles.txShare}>
+                      {formatCurrency(tx.userShare)}
+                    </div>
+                    {tx.isPayer && tx.lentAmount > 0 && (
+                      <div style={styles.txLentHint}>
+                        <ArrowUpRight size={11} />
+                        <span>lent {formatCurrency(tx.lentAmount)}</span>
+                      </div>
+                    )}
+                    {!tx.isPayer && (
+                      <div style={styles.txShareLabel}>
+                        <UserCheck size={11} />
+                        <span>your share</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 3: Transactions */}
-      {activeTab === "transactions" && (
-        <div className="glass-card" style={styles.sectionCard}>
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Recent True Consumption Log</h2>
-            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              Sorted by latest
-            </span>
+              );
+            })}
           </div>
-
-          {recentTransactions.length === 0 ? (
-            <div style={styles.emptyState}>No transactions recorded.</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {recentTransactions.map((tx) => (
-                <div key={tx.id} style={styles.txRow}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={styles.txDesc}>{tx.description}</div>
-                    <div style={styles.txMeta}>
-                      <span>{new Date(tx.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                      {tx.groupName && <span>• {tx.groupName}</span>}
-                      <span>• {tx.category}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={styles.txShareAmount}>
-                      {formatCurrency(tx.userShare, tx.currency)}
-                    </div>
-                    <div style={styles.txSubtitle}>
-                      {tx.isPayer ? (
-                        <span style={{ color: "var(--owed)" }}>
-                          You paid {formatCurrency(tx.totalExpenseAmount, tx.currency)}
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--text-muted)" }}>
-                          Your split share
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  page: {
+  container: {
+    maxWidth: "680px",
+    margin: "0 auto",
     display: "flex",
     flexDirection: "column",
-    gap: "1rem",
-    maxWidth: "800px",
-    margin: "0 auto",
+    gap: "0.85rem",
     width: "100%",
-    paddingBottom: "2rem",
   },
-  header: {
+  headerRow: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: "0.75rem",
     flexWrap: "wrap",
-    gap: "0.5rem",
   },
   title: {
-    fontSize: "1.45rem",
-    fontWeight: 800,
+    fontSize: "1.2rem",
+    fontWeight: 700,
     color: "var(--text-primary)",
     letterSpacing: "-0.02em",
   },
   subtitle: {
-    fontSize: "0.82rem",
+    fontSize: "0.75rem",
     color: "var(--text-secondary)",
-    marginTop: "0.15rem",
+    marginTop: "0.1rem",
   },
-
-  /* Equation Card */
-  equationCard: {
-    padding: "1rem 1.25rem",
-    borderRadius: "16px",
-    background: "var(--surface)",
-    border: "1px solid var(--border-light)",
-  },
-  equationHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "0.85rem",
-    flexWrap: "wrap",
-    gap: "0.4rem",
-  },
-  badgeEquation: {
+  receivableBadge: {
     display: "inline-flex",
     alignItems: "center",
     gap: "0.4rem",
-    padding: "0.25rem 0.65rem",
-    borderRadius: "9999px",
+    padding: "0.3rem 0.65rem",
+    borderRadius: "20px",
+    background: "rgba(0, 208, 156, 0.12)",
+    border: "1px solid rgba(0, 208, 156, 0.25)",
     fontSize: "0.72rem",
-    fontWeight: 700,
-    background: "rgba(16, 185, 129, 0.12)",
+    fontWeight: 600,
     color: "var(--primary)",
   },
-  equationVisual: {
+  receivableDot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    backgroundColor: "var(--primary)",
+  },
+
+  /* Month Pills (Broker App Style) */
+  monthScrollWrap: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: "0.5rem",
-    flexWrap: "wrap",
+    gap: "0.45rem",
+    paddingBottom: "0.2rem",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
   },
-  equationItem: {
+  monthPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "0.35rem 0.8rem",
+    borderRadius: "20px",
+    background: "var(--surface)",
+    border: "1px solid var(--border-light)",
+    color: "var(--text-secondary)",
+    fontSize: "0.76rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "all 0.15s ease",
+    flexShrink: 0,
+  },
+  monthPillActive: {
+    background: "var(--primary)",
+    borderColor: "var(--primary)",
+    color: "#000000",
+    fontWeight: 700,
+  },
+
+  /* Portfolio Hero Card */
+  heroCard: {
+    padding: "1.1rem 1.25rem",
+    borderRadius: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.85rem",
+  },
+  heroTopRow: {
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  heroLabel: {
+    fontSize: "0.68rem",
+    fontWeight: 700,
+    color: "var(--text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+  },
+  heroAmount: {
+    fontSize: "1.65rem",
+    fontWeight: 800,
+    color: "var(--text-primary)",
+    letterSpacing: "-0.03em",
+    marginTop: "0.15rem",
+    lineHeight: 1.1,
+  },
+  ratioPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "0.25rem 0.55rem",
+    borderRadius: "12px",
+    background: "var(--surface-hover)",
+    border: "1px solid var(--border-light)",
+    fontSize: "0.7rem",
+    color: "var(--text-secondary)",
+    fontWeight: 600,
+  },
+  heroDivider: {
+    height: "1px",
+    background: "var(--border-light)",
+    width: "100%",
+  },
+  stripGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto 1fr auto 1fr",
+    alignItems: "center",
+    gap: "0.4rem",
+  },
+  stripCol: {
     display: "flex",
     flexDirection: "column",
     gap: "0.15rem",
-    flex: 1,
-    minWidth: "120px",
   },
-  equationLabel: {
-    fontSize: "0.68rem",
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    color: "var(--text-muted)",
+  stripDivider: {
+    width: "1px",
+    height: "28px",
+    background: "var(--border-light)",
   },
-  equationValPrimary: {
-    fontSize: "1.25rem",
-    fontWeight: 800,
-    color: "var(--primary)",
-  },
-  equationValLent: {
-    fontSize: "1.25rem",
-    fontWeight: 800,
-    color: "#f59e0b",
-  },
-  equationValTotal: {
-    fontSize: "1.25rem",
-    fontWeight: 800,
-    color: "var(--text-primary)",
-  },
-  equationSub: {
-    fontSize: "0.68rem",
-    color: "var(--text-muted)",
-  },
-  equationOperator: {
-    fontSize: "1.2rem",
-    fontWeight: 700,
-    color: "var(--text-muted)",
-    padding: "0 0.25rem",
-  },
-
-  /* Metrics Grid */
-  metricsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-    gap: "0.75rem",
-  },
-  metricCard: {
-    padding: "0.85rem 1rem",
-    borderRadius: "14px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.35rem",
-  },
-  metricTop: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  metricLabel: {
-    fontSize: "0.7rem",
+  stripLabel: {
+    fontSize: "0.65rem",
     fontWeight: 600,
     color: "var(--text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.04em",
   },
-  metricIconWrap: {
-    width: "28px",
-    height: "28px",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  metricAmount: {
-    fontSize: "1.2rem",
-    fontWeight: 800,
+  stripValue: {
+    fontSize: "0.92rem",
+    fontWeight: 700,
     color: "var(--text-primary)",
     letterSpacing: "-0.01em",
   },
-  metricFooter: {
-    fontSize: "0.68rem",
+  stripHint: {
+    fontSize: "0.65rem",
     color: "var(--text-muted)",
-    lineHeight: 1.25,
   },
 
-  /* Tabs */
-  tabsRow: {
-    display: "flex",
-    gap: "0.45rem",
-    flexWrap: "wrap",
-  },
-
-  /* Section Card */
-  sectionCard: {
+  /* Common Card Section */
+  cardSection: {
     padding: "1rem 1.15rem",
-    borderRadius: "14px",
+    borderRadius: "16px",
     display: "flex",
     flexDirection: "column",
-    gap: "0.85rem",
+    gap: "0.75rem",
   },
   sectionHeader: {
     display: "flex",
@@ -500,100 +527,172 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
   },
   sectionTitle: {
-    fontSize: "0.95rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.45rem",
+    fontSize: "0.85rem",
     fontWeight: 700,
     color: "var(--text-primary)",
+    letterSpacing: "-0.01em",
+  },
+  countBadge: {
+    fontSize: "0.7rem",
+    color: "var(--text-muted)",
+    fontWeight: 500,
+  },
+  periodBadge: {
+    fontSize: "0.7rem",
+    color: "var(--primary)",
+    fontWeight: 600,
+  },
+
+  /* Categories */
+  catList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.65rem",
+  },
+  catItem: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.3rem",
+  },
+  catRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  catLeft: {
     display: "flex",
     alignItems: "center",
     gap: "0.45rem",
   },
-  explainerCard: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "0.65rem",
-    padding: "0.75rem 1rem",
-    borderRadius: "12px",
-    background: "rgba(16, 185, 129, 0.05)",
-    border: "1px solid rgba(16, 185, 129, 0.18)",
-  },
-
-  /* Category Item */
-  catItem: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.35rem",
-  },
-  catTopRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
+  catEmoji: {
+    fontSize: "0.95rem",
+    lineHeight: 1,
   },
   catName: {
-    fontSize: "0.85rem",
+    fontSize: "0.82rem",
     fontWeight: 600,
     color: "var(--text-primary)",
   },
-  catAmountWrap: {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
+  catPercentBadge: {
+    fontSize: "0.68rem",
+    color: "var(--text-muted)",
+    fontWeight: 500,
+    padding: "0.1rem 0.35rem",
+    background: "var(--surface-hover)",
+    borderRadius: "6px",
   },
   catAmount: {
-    fontSize: "0.85rem",
+    fontSize: "0.84rem",
     fontWeight: 700,
     color: "var(--text-primary)",
   },
-  catPercent: {
-    fontSize: "0.72rem",
-    color: "var(--text-muted)",
-  },
-  progressBarBg: {
-    height: "6px",
-    borderRadius: "3px",
+  barBg: {
+    height: "4px",
     background: "var(--surface-hover)",
+    borderRadius: "2px",
     overflow: "hidden",
   },
-  progressBarFill: {
+  barFill: {
     height: "100%",
-    borderRadius: "3px",
+    borderRadius: "2px",
     transition: "width 0.3s ease",
   },
 
   /* Transactions */
-  txRow: {
+  txList: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  txItem: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0.65rem 0",
+    padding: "0.6rem 0",
     borderBottom: "1px solid var(--border-light)",
     gap: "0.75rem",
   },
+  txLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    minWidth: 0,
+    flex: 1,
+  },
+  txDate: {
+    fontSize: "0.72rem",
+    fontWeight: 600,
+    color: "var(--text-muted)",
+    width: "44px",
+    flexShrink: 0,
+  },
   txDesc: {
-    fontSize: "0.88rem",
+    fontSize: "0.84rem",
     fontWeight: 600,
     color: "var(--text-primary)",
-    wordBreak: "break-word",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   txMeta: {
-    fontSize: "0.7rem",
-    color: "var(--text-muted)",
     display: "flex",
-    gap: "0.35rem",
-    marginTop: "0.1rem",
+    alignItems: "center",
+    gap: "0.4rem",
+    marginTop: "0.15rem",
+    fontSize: "0.68rem",
   },
-  txShareAmount: {
-    fontSize: "0.92rem",
+  groupBadge: {
+    padding: "0.1rem 0.35rem",
+    borderRadius: "4px",
+    background: "var(--surface-hover)",
+    color: "var(--text-secondary)",
+    fontWeight: 600,
+    fontSize: "0.65rem",
+  },
+  directBadge: {
+    padding: "0.1rem 0.35rem",
+    borderRadius: "4px",
+    background: "var(--surface-hover)",
+    color: "var(--text-muted)",
+    fontSize: "0.65rem",
+  },
+  payerHint: {
+    fontSize: "0.68rem",
+    color: "var(--text-muted)",
+  },
+  txRight: {
+    textAlign: "right",
+    flexShrink: 0,
+  },
+  txShare: {
+    fontSize: "0.88rem",
     fontWeight: 700,
     color: "var(--text-primary)",
+    letterSpacing: "-0.01em",
   },
-  txSubtitle: {
-    fontSize: "0.7rem",
+  txLentHint: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.15rem",
+    fontSize: "0.66rem",
+    color: "#f59e0b",
+    fontWeight: 500,
+    marginTop: "0.1rem",
+  },
+  txShareLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.15rem",
+    fontSize: "0.66rem",
+    color: "var(--text-muted)",
     marginTop: "0.1rem",
   },
   emptyState: {
     padding: "1.5rem",
     textAlign: "center",
+    fontSize: "0.78rem",
     color: "var(--text-muted)",
-    fontSize: "0.82rem",
   },
 };

@@ -108,6 +108,11 @@ export default function GlobalAddExpenseFab({
     }
   }
 
+  // Hide FAB completely on the Spending screen
+  if (pathname?.startsWith("/spending")) {
+    return null;
+  }
+
   return (
     <>
       {/* Universal Sticky "Add Expense" Button */}

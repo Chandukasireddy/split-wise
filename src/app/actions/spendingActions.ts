@@ -13,6 +13,9 @@ export interface CategorySpend {
 }
 
 export interface MonthSpend {
+  key: string;            // e.g. "2026-09"
+  label: string;          // e.g. "Sep 2026"
+  shortLabel: string;     // e.g. "Sep"
   month: string;
   year: number;
   actualSpend: number;
@@ -32,6 +35,7 @@ export interface SpendingTransaction {
   userShare: number;
   userPaidTotal: number;
   isPayer: boolean;
+  payerName: string;
   lentAmount: number;
 }
 
@@ -170,17 +174,25 @@ export async function getPersonalSpendingData(): Promise<PersonalSpendingSummary
     };
   }).sort((a, b) => b.actualAmount - a.actualAmount);
 
-  // Build Monthly Trends (last 6 months)
+  // Build Monthly Trends (chronologically descending)
   const monthMap: Record<string, MonthSpend> = {};
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   userSplits.forEach((split) => {
     const d = new Date(split.expense.date);
-    const key = `${monthNames[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const mIndex = d.getUTCMonth();
+    const year = d.getUTCFullYear();
+    const key = `${year}-${String(mIndex + 1).padStart(2, "0")}`;
+    const label = `${monthNames[mIndex]} ${year}`;
+    const shortLabel = monthNames[mIndex];
+
     if (!monthMap[key]) {
       monthMap[key] = {
-        month: monthNames[d.getUTCMonth()],
-        year: d.getUTCFullYear(),
+        key,
+        label,
+        shortLabel,
+        month: monthNames[mIndex],
+        year,
         actualSpend: 0,
         bankOutflow: 0,
         paidForOthers: 0,
@@ -192,11 +204,19 @@ export async function getPersonalSpendingData(): Promise<PersonalSpendingSummary
 
   expensesUserPaid.forEach((exp) => {
     const d = new Date(exp.date);
-    const key = `${monthNames[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const mIndex = d.getUTCMonth();
+    const year = d.getUTCFullYear();
+    const key = `${year}-${String(mIndex + 1).padStart(2, "0")}`;
+    const label = `${monthNames[mIndex]} ${year}`;
+    const shortLabel = monthNames[mIndex];
+
     if (!monthMap[key]) {
       monthMap[key] = {
-        month: monthNames[d.getUTCMonth()],
-        year: d.getUTCFullYear(),
+        key,
+        label,
+        shortLabel,
+        month: monthNames[mIndex],
+        year,
         actualSpend: 0,
         bankOutflow: 0,
         paidForOthers: 0,
@@ -211,23 +231,30 @@ export async function getPersonalSpendingData(): Promise<PersonalSpendingSummary
 
   paymentsReceived.forEach((p) => {
     const d = new Date(p.date);
-    const key = `${monthNames[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const mIndex = d.getUTCMonth();
+    const year = d.getUTCFullYear();
+    const key = `${year}-${String(mIndex + 1).padStart(2, "0")}`;
     if (monthMap[key]) {
       monthMap[key].reimbursed += p.amount;
     }
   });
 
-  const monthlyTrends = Object.values(monthMap).slice(0, 6);
+  const monthlyTrends = Object.values(monthMap)
+    .sort((a, b) => b.key.localeCompare(a.key))
+    .slice(0, 12);
 
   // Build Recent Transactions with True Consumption breakdown
-  const recentTransactions: SpendingTransaction[] = userSplits.slice(0, 20).map((split) => {
+  const recentTransactions: SpendingTransaction[] = userSplits.map((split) => {
     const exp = split.expense;
     const isPayer = exp.payerId === userId;
     const userPaidTotal = isPayer ? exp.amount : 0;
     const lentAmount = isPayer ? Math.max(0, exp.amount - split.amount) : 0;
+    const payerName = isPayer
+      ? "You"
+      : (exp.payer?.name || exp.payer?.username || "Someone");
 
     return {
-      id: exp.id,
+      id: `${exp.id}-${split.id}`,
       description: exp.description,
       category: exp.category,
       currency: exp.currency,
@@ -237,6 +264,7 @@ export async function getPersonalSpendingData(): Promise<PersonalSpendingSummary
       userShare: split.amount,
       userPaidTotal,
       isPayer,
+      payerName,
       lentAmount,
     };
   });
