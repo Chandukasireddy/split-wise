@@ -52,44 +52,49 @@
 }
 
 [data-theme="dark"] {
-  /* Colors - Sleek Dark Theme */
-  --background-raw: 11, 15, 25;
-  --background: #0B0F19;
-  --surface-raw: 17, 24, 39;
-  --surface: #111827;
-  --surface-hover: #1E293B;
-  --input-bg: #1A2234;
+  /* Colors - True Black OLED Groww-Inspired Theme */
+  --background-raw: 0, 0, 0;
+  --background: #000000;
+  --surface-raw: 18, 18, 20;
+  --surface: #121214;
+  --surface-hover: #1C1C20;
+  --input-bg: #18181B;
   
-  --primary-raw: 16, 185, 129;
-  --primary: #10B981;
-  --primary-hover: #34D399;
-  --primary-glow: rgba(16, 185, 129, 0.22);
+  /* Groww Vibrant Mint Green */
+  --primary-raw: 0, 208, 156;
+  --primary: #00D09C;
+  --primary-hover: #00B386;
+  --primary-glow: rgba(0, 208, 156, 0.18);
   
-  --secondary: #60A5FA;
-  --warning: #FBBF24;
+  --secondary: #387ED1;
+  --warning: #F59E0B;
   
-  --owed-raw: 52, 211, 153;
-  --owed: #34D399;
-  --owed-glow: rgba(52, 211, 153, 0.16);
+  /* Groww Mint Green for Positive Balances / Owed */
+  --owed-raw: 0, 208, 156;
+  --owed: #00D09C;
+  --owed-glow: rgba(0, 208, 156, 0.14);
   
-  --owes-raw: 248, 113, 113;
-  --owes: #F87171;
-  --owes-glow: rgba(248, 113, 113, 0.16);
+  /* Groww Coral Red for Negative Balances / Owes */
+  --owes-raw: 235, 91, 91;
+  --owes: #EB5B5B;
+  --owes-glow: rgba(235, 91, 91, 0.14);
   
-  --text-primary: #F9FAFB;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  /* Typography - Ultra-Crisp White & Neutral Grays */
+  --text-primary: #FFFFFF;
+  --text-secondary: #9E9EA7;
+  --text-muted: #666670;
   
-  --border-light: #1E293B;
-  --border-focus: rgba(52, 211, 153, 0.45);
+  /* Groww Crisp Razor-Thin Dark Borders */
+  --border-light: #222226;
+  --border-focus: rgba(0, 208, 156, 0.45);
   
-  /* Card Styling - Dark Mode Cards */
-  --card-bg: #111827;
-  --card-border: #1E293B;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
-  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.45);
-  --modal-bg: #111827;
-  --nav-border: rgba(255, 255, 255, 0.08);
+  /* Card Styling - Elevated Deep Charcoal on Pitch Black */
+  --card-bg: #121214;
+  --card-border: #1E1E22;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --modal-bg: #141417;
+  --nav-border: #1A1A1D;
 }
 
 /* Reset and Globals */
@@ -400,18 +405,14 @@ p {
 .modal-overlay-responsive {
   position: fixed;
   inset: 0;
-  background-color: rgba(3, 7, 18, 0.75);
+  background-color: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  background-color: rgba(15, 23, 42, 0.45); /* Soft, elegant modern backdrop instead of pitch black */
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  z-index: 1000;
   padding: 1rem;
+  z-index: 1000;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -473,7 +474,7 @@ p {
   .modal-overlay-responsive {
     align-items: flex-end !important;
     padding: 0 !important;
-    background-color: rgba(15, 23, 42, 0.4) !important;
+    background-color: rgba(0, 0, 0, 0.72) !important;
   }
 
   .modal-drag-handle {
@@ -481,21 +482,17 @@ p {
     width: 38px;
     height: 4px;
     border-radius: 2px;
-    background: #cbd5e1;
+    background: var(--border-light);
     margin: -0.25rem auto 0.5rem auto;
   }
 
   .modal-card-responsive {
     max-width: 100% !important;
-    max-height: 92vh !important;
-    max-height: 86vh !important;
+    max-height: 88vh !important;
     border-radius: 22px 22px 0 0 !important;
-    padding: 1.25rem 1.15rem calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
-    gap: 1.15rem !important;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18) !important;
     padding: 1rem 1.15rem calc(1.25rem + env(safe-area-inset-bottom, 0px)) !important;
     gap: 1rem !important;
-    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.45) !important;
     animation: slideUpMobile 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
 
@@ -783,7 +780,7 @@ p {
 .switch-track {
   width: 44px;
   height: 24px;
-  background: #cbd5e1;
+  background: var(--border-light);
   border-radius: 9999px;
   position: relative;
   cursor: pointer;

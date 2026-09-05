@@ -21,7 +21,7 @@ const themeOptions: ThemeOption[] = [
   {
     id: "dark",
     label: "Dark",
-    description: "Sleek, eye-friendly dark theme",
+    description: "True Black OLED theme",
     icon: Moon,
   },
   {
