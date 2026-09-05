@@ -32,7 +32,9 @@ export default function GlobalAddExpenseFab({
   const [groups, setGroups] = useState<GroupInfo[]>(initialGroups);
   const [friends, setFriends] = useState<FriendInfo[]>(initialFriends);
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"group" | "friend">("group");
+  const [activeTab, setActiveTab] = useState<"group" | "friend">(() =>
+    pathname?.startsWith("/friends") ? "friend" : "group"
+  );
 
   // Portal mount flag
   const mounted = React.useSyncExternalStore(
@@ -61,6 +63,11 @@ export default function GlobalAddExpenseFab({
   }, [showModal]);
 
   function openModal() {
+    if (pathname?.startsWith("/friends")) {
+      setActiveTab("friend");
+    } else {
+      setActiveTab("group");
+    }
     setShowModal(true);
     getUserGroups().then((g) => setGroups(g)).catch(() => {});
     getFriends().then((f) => setFriends(f)).catch(() => {});

@@ -18,6 +18,7 @@ import {
   Film,
   Receipt,
   PiggyBank,
+  Calendar,
 } from "lucide-react";
 import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
 import {
@@ -38,6 +39,14 @@ const CATEGORIES = [
   "Utilities & Bills",
   "Entertainment",
 ];
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  "General": "📦",
+  "Food & Dining": "🍔",
+  "Travel & Transport": "✈️",
+  "Utilities & Bills": "💡",
+  "Entertainment": "🎬",
+};
 
 const CATEGORY_COLORS: Record<string, string> = {
   General: "#64748b",
@@ -583,19 +592,6 @@ export default function FriendsClient({
           {/* Header */}
           <div style={styles.header}>
             <h1 style={styles.title}>Friends</h1>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                setSearchResults([]);
-                setShowAddFriendModal(true);
-              }}
-              className="btn btn-primary"
-              style={styles.addFriendBtn}
-            >
-              <UserPlus size={16} />
-              <span>Add friend</span>
-            </button>
           </div>
 
           {/* Friends List */}
@@ -682,6 +678,24 @@ export default function FriendsClient({
                 })}
               </div>
             )}
+
+            {friends.length > 0 && (
+              <div style={styles.addFriendPillContainer}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSearchResults([]);
+                    setShowAddFriendModal(true);
+                  }}
+                  className="group-add-pill"
+                  title="Add friend"
+                >
+                  <UserPlus size={15} strokeWidth={2.2} />
+                  <span>Add friend</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -690,28 +704,32 @@ export default function FriendsClient({
           VIEW 2: 1-ON-1 TRANSACTION LEDGER (When friend is selected)
       ───────────────────────────────────────────────────────────── */}
       {selectedFriend && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
-          {/* Top Compact Navigation & Balance Bar */}
-          <div style={styles.compactLedgerBar} className="glass-card">
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: 0 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedFriend(null);
-                  setLedger(null);
-                }}
-                style={styles.backCircleBtn}
-                title="Back to all friends"
-              >
-                <ArrowLeft size={18} />
-              </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", width: "100%", maxWidth: "800px", margin: "0 auto" }}>
+          {/* Top Dedicated Back Navigation */}
+          <div style={styles.detailTopNav}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFriend(null);
+                setLedger(null);
+              }}
+              style={styles.detailBackBtn}
+              title="Back to all friends"
+            >
+              <ArrowLeft size={16} />
+              <span>Friends</span>
+            </button>
+          </div>
 
+          {/* Friend Profile & Balance Card - spacious, no overlap */}
+          <div style={styles.friendHeaderCard} className="glass-card">
+            <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", flex: 1, minWidth: 0 }}>
               <div
                 style={{
                   ...styles.avatar,
-                  width: "38px",
-                  height: "38px",
-                  fontSize: "1rem",
+                  width: "44px",
+                  height: "44px",
+                  fontSize: "1.15rem",
                   background: getAvatarGradient(selectedFriend.id || selectedFriend.name),
                 }}
               >
@@ -719,10 +737,10 @@ export default function FriendsClient({
               </div>
 
               <div style={{ minWidth: 0, flex: 1 }}>
-                <h1 style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <h1 style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-primary)", margin: 0, lineHeight: 1.25 }}>
                   {selectedFriend.name}
                 </h1>
-                <div style={{ fontSize: "0.78rem", fontWeight: 700, marginTop: "0.1rem" }}>
+                <div style={{ fontSize: "0.82rem", fontWeight: 700, marginTop: "0.15rem" }}>
                   {primaryNet > 0.01 ? (
                     <span style={{ color: "var(--owed)" }}>
                       owes you {formatCurrency(primaryNet, primaryCurrency)}
@@ -738,7 +756,7 @@ export default function FriendsClient({
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={openSettleUpModal}
@@ -758,7 +776,7 @@ export default function FriendsClient({
                     setShowAddToGroupModal(true);
                   }}
                   className="group-pill-badge"
-                  style={{ padding: "0.4rem 0.65rem", fontSize: "0.78rem" }}
+                  style={{ padding: "0.45rem 0.75rem", fontSize: "0.8rem" }}
                   title="Add to a group"
                 >
                   <UserPlus size={13} />
@@ -940,22 +958,42 @@ export default function FriendsClient({
             {expenseError && <div style={styles.errorBox}>{expenseError}</div>}
 
             <form onSubmit={handleAddExpenseSubmit} style={styles.form}>
-              <div style={styles.formGroup}>
-                <label className="form-label">Description</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Dinner, Movie ticket, Groceries"
-                  value={expenseDesc}
-                  onChange={(e) => setExpenseDesc(e.target.value)}
-                  className="form-input"
-                  required
-                  autoFocus
-                />
+              {/* Row 1: Description & Category with icons */}
+              <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.65rem" }}>
+                <div style={{ flex: 1.4 }}>
+                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Description *</label>
+                  <input
+                    type="text"
+                    placeholder="What was this for?"
+                    value={expenseDesc}
+                    onChange={(e) => setExpenseDesc(e.target.value)}
+                    className="form-input"
+                    style={{ height: "38px", fontSize: "0.88rem" }}
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Category</label>
+                  <select
+                    value={expenseCategory}
+                    onChange={(e) => setExpenseCategory(e.target.value)}
+                    className="form-input"
+                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {CATEGORY_EMOJIS[cat] || "🏷️"} {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div style={styles.formRow}>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">Amount</label>
+              {/* Row 2: Amount, Currency & Date with Calendar icon */}
+              <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.65rem" }}>
+                <div style={{ flex: 1.2 }}>
+                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Amount *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -963,50 +1001,40 @@ export default function FriendsClient({
                     value={expenseAmt}
                     onChange={(e) => setExpenseAmt(e.target.value)}
                     className="form-input"
+                    style={{ height: "38px", fontSize: "0.88rem" }}
                     required
                   />
                 </div>
-                <div style={{ width: "110px" }}>
-                  <label className="form-label">Currency</label>
+                <div style={{ width: "95px" }}>
+                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Currency</label>
                   <select
                     value={expenseCurrency}
                     onChange={(e) => setExpenseCurrency(e.target.value)}
-                    className="form-select"
+                    className="form-input"
+                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
                   >
                     <option value="EUR">EUR (€)</option>
                     <option value="USD">USD ($)</option>
                     <option value="GBP">GBP (£)</option>
                     <option value="INR">INR (₹)</option>
+                    <option value="PLN">PLN (zł)</option>
                     <option value="CAD">CAD ($)</option>
                     <option value="AUD">AUD ($)</option>
                     <option value="JPY">JPY (¥)</option>
                   </select>
                 </div>
-              </div>
-
-              <div style={styles.formRow}>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">Category</label>
-                  <select
-                    value={expenseCategory}
-                    onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="form-select"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">Date</label>
-                  <input
-                    type="date"
-                    value={expenseDate}
-                    onChange={(e) => setExpenseDate(e.target.value)}
-                    className="form-input"
-                  />
+                <div style={{ flex: 1.1 }}>
+                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Date *</label>
+                  <div style={{ position: "relative" }}>
+                    <Calendar size={14} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+                    <input
+                      type="date"
+                      value={expenseDate}
+                      onChange={(e) => setExpenseDate(e.target.value)}
+                      className="form-input"
+                      style={{ height: "38px", fontSize: "0.82rem", paddingLeft: "1.9rem", background: "var(--input-bg)" }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1590,12 +1618,38 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap",
     gap: "0.75rem",
   },
-  addFriendBtn: {
-    padding: "0.5rem 0.95rem",
-    fontSize: "0.85rem",
+  addFriendPillContainer: {
+    display: "flex",
+    justifyContent: "center",
+    paddingTop: "0.5rem",
+    paddingBottom: "0.5rem",
+  },
+  detailTopNav: {
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "0.15rem",
+  },
+  detailBackBtn: {
     display: "inline-flex",
     alignItems: "center",
     gap: "0.4rem",
+    fontSize: "0.85rem",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    padding: "0.35rem 0.5rem",
+    borderRadius: "8px",
+    transition: "color 0.15s ease",
+  },
+  friendHeaderCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0.85rem 1rem",
+    gap: "0.75rem",
+    borderRadius: "14px",
   },
   compactLedgerBar: {
     display: "flex",
@@ -1604,20 +1658,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.75rem 1rem",
     gap: "0.75rem",
     borderRadius: "12px",
-  },
-  backCircleBtn: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    background: "var(--surface-hover)",
-    border: "1px solid var(--border-light)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: "var(--text-primary)",
-    cursor: "pointer",
-    flexShrink: 0,
-    transition: "background 0.15s ease",
   },
   compactSettleBtn: {
     display: "inline-flex",

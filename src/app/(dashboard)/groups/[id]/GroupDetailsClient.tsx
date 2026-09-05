@@ -85,6 +85,13 @@ interface GroupDetailsClientProps {
 }
 
 const CATEGORIES = ["Food", "Travel", "Utilities", "Entertainment", "General"];
+const CATEGORY_EMOJIS: Record<string, string> = {
+  Food: "🍔",
+  Travel: "✈️",
+  Utilities: "💡",
+  Entertainment: "🎬",
+  General: "📦",
+};
 const CURRENCIES = [
   "EUR", "USD", "GBP", "INR", "PLN", "JPY", "CAD", "AUD", "CHF", "CNY",
   "SEK", "NOK", "DKK", "BRL", "MXN", "SGD", "HKD", "KRW", "TRY", "ZAR",
@@ -731,7 +738,7 @@ export default function GroupDetailsClient({
       </div>
 
       {/* Dynamic Tab Contents */}
-      <div style={{ minHeight: "400px" }}>
+      <div style={{ width: "100%" }}>
         {/* Expenses Tab */}
         {activeTab === "expenses" && (
           <div style={{ width: "100%" }}>
@@ -1069,21 +1076,43 @@ export default function GroupDetailsClient({
             {formError && <div style={styles.modalErrorBox}>{formError}</div>}
 
             <form onSubmit={editingExpenseId ? handleEditExpenseSubmit : handleAddExpenseSubmit} style={styles.modalForm}>
-              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
-                <div style={{ flex: 2 }}>
-                  <label htmlFor="expDesc" className="form-label">Description *</label>
+              {/* Row 1: Description & Category with icons */}
+              <div className="modal-form-row-responsive" style={{ ...styles.modalFormRow, gap: "0.65rem", marginBottom: "0.65rem" }}>
+                <div style={{ flex: 1.4 }}>
+                  <label htmlFor="expDesc" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Description *</label>
                   <input
                     id="expDesc"
                     type="text"
                     required
-                    placeholder="e.g. Dinner buffet"
+                    placeholder="What was this for?"
                     value={expenseDesc}
                     onChange={(e) => setExpenseDesc(e.target.value)}
                     className="form-input"
+                    style={{ height: "38px", fontSize: "0.88rem" }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label htmlFor="expAmt" className="form-label">Amount *</label>
+                  <label htmlFor="expCat" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Category</label>
+                  <select
+                    id="expCat"
+                    value={expenseCategory}
+                    onChange={(e) => setExpenseCategory(e.target.value)}
+                    className="form-input"
+                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {CATEGORY_EMOJIS[cat] || "🏷️"} {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Amount, Currency & Date with Calendar Icon */}
+              <div className="modal-form-row-responsive" style={{ ...styles.modalFormRow, gap: "0.65rem", marginBottom: "0.65rem" }}>
+                <div style={{ flex: 1.2 }}>
+                  <label htmlFor="expAmt" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Amount *</label>
                   <input
                     id="expAmt"
                     type="number"
@@ -1093,46 +1122,35 @@ export default function GroupDetailsClient({
                     value={expenseAmt}
                     onChange={(e) => setExpenseAmt(e.target.value)}
                     className="form-input"
+                    style={{ height: "38px", fontSize: "0.88rem" }}
                   />
                 </div>
-              </div>
-
-              <div className="modal-form-row-responsive" style={styles.modalFormRow}>
-                <div style={{ flex: 1.1 }}>
-                  <label htmlFor="expDate" className="form-label">Date *</label>
-                  <input
-                    id="expDate"
-                    type="date"
-                    required
-                    value={expenseDate}
-                    onChange={(e) => setExpenseDate(e.target.value)}
-                    className="form-input"
-                    style={{ background: "var(--input-bg)" }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="expCat" className="form-label">Category</label>
-                  <select
-                    id="expCat"
-                    value={expenseCategory}
-                    onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="form-input"
-                    style={{ background: "var(--input-bg)" }}
-                  >
-                    {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: 0.9 }}>
-                  <label htmlFor="expCurr" className="form-label">Currency</label>
+                <div style={{ width: "95px" }}>
+                  <label htmlFor="expCurr" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Currency</label>
                   <select
                     id="expCurr"
                     value={expenseCurrency}
                     onChange={(e) => setExpenseCurrency(e.target.value)}
                     className="form-input"
-                    style={{ background: "var(--input-bg)" }}
+                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
                   >
                     {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
+                </div>
+                <div style={{ flex: 1.1 }}>
+                  <label htmlFor="expDate" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Date *</label>
+                  <div style={{ position: "relative" }}>
+                    <Calendar size={14} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+                    <input
+                      id="expDate"
+                      type="date"
+                      required
+                      value={expenseDate}
+                      onChange={(e) => setExpenseDate(e.target.value)}
+                      className="form-input"
+                      style={{ height: "38px", fontSize: "0.82rem", paddingLeft: "1.9rem", background: "var(--input-bg)" }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2054,7 +2072,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.5rem",
+    gap: "0.45rem",
     width: "100%",
   },
   /* ── Header ── */
@@ -2083,14 +2101,14 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "0.85rem",
+    marginBottom: "0.25rem",
   },
   compactHeader: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: "0.5rem",
-    marginBottom: "0.75rem",
+    marginBottom: "0.15rem",
   },
   groupTitleCompact: {
     fontSize: "1.25rem",
@@ -2203,10 +2221,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   actionPillsRow: {
     display: "flex",
-    gap: "0.5rem",
+    gap: "0.45rem",
     flexWrap: "wrap",
-    paddingTop: "0.25rem",
-    marginBottom: "1rem",
+    paddingTop: "0",
+    marginBottom: "0.35rem",
   },
   modalBackBtn: {
     background: "transparent",
