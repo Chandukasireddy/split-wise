@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, User, Activity, CircleUser } from "lucide-react";
+import { Users, User, PieChart, CircleUser } from "lucide-react";
 
 interface BottomNavProps {
   displayName: string;
@@ -12,7 +12,7 @@ interface BottomNavProps {
 const navItems = [
   { href: "/dashboard",  label: "Groups",   icon: Users },
   { href: "/friends",    label: "Friends",  icon: User },
-  { href: "/activities", label: "Activity", icon: Activity },
+  { href: "/spending",   label: "Spending", icon: PieChart },
   { href: "/profile",    label: "Me",       icon: CircleUser },
 ];
 

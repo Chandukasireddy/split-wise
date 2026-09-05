@@ -8,6 +8,7 @@ import {
   updatePassword,
   getCurrentUserProfile,
 } from "@/app/actions/userActions";
+import Link from "next/link";
 import {
   Pencil,
   X,
@@ -19,6 +20,8 @@ import {
   ShieldCheck,
   AtSign,
   User,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 import { signOut } from "@/app/actions/authActions";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -405,6 +408,22 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Activity Log Navigation Link */}
+      <Link href="/activities" className="glass-card" style={styles.activityCard}>
+        <div style={styles.iconBox}>
+          <Activity size={16} color="var(--primary)" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text-primary)" }}>
+            Activity Log
+          </div>
+          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.05rem" }}>
+            Recent expenses, payments, and updates
+          </div>
+        </div>
+        <ChevronRight size={17} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+      </Link>
+
       {/* Simple, clean, outlined Sign Out icon button at the end */}
       <div style={styles.signOutWrap}>
         <button
@@ -422,6 +441,16 @@ export default function ProfilePage() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  activityCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    padding: "0.85rem 1rem",
+    borderRadius: "14px",
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "transform 0.15s ease, background 0.15s ease",
+  },
   page: {
     maxWidth: "460px",
     margin: "0 auto",

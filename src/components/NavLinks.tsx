@@ -3,12 +3,12 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, User, Activity } from "lucide-react";
+import { Users, User, PieChart } from "lucide-react";
 
 const links = [
   { href: "/dashboard", label: "Groups",   icon: Users },
   { href: "/friends",   label: "Friends",  icon: User },
-  { href: "/activities",label: "Activity", icon: Activity },
+  { href: "/spending",  label: "Spending", icon: PieChart },
 ];
 
 export default function NavLinks() {
