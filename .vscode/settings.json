@@ -1,11 +1,13 @@
 {
   "files.watcherExclude": {
+    "**/.git/**": true,
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
-    "**/.git/**": true,
     "**/node_modules/**": true,
-    "**/.next/**": true
-  }
+    "**/.next/**": true,
+    "**/.prisma/**": true
   },
-  "git.openRepositoryInParentFolders": "never"
+  "git.openRepositoryInParentFolders": "never",
+  "git.autorefresh": true,
+  "git.decorations.enabled": true
 }
