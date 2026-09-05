@@ -4,11 +4,9 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/authActions";
 import { Wallet, LogOut, Settings } from "lucide-react";
-import PWAInstallButton from "@/components/PWAInstallButton";
 import BottomNav from "@/components/BottomNav";
 import NavLinks from "@/components/NavLinks";
 import GlobalAddExpenseFab from "@/components/GlobalAddExpenseFab";
-import ThemeToggle from "@/components/ThemeToggle";
 import { getUserGroups, getFriends } from "@/app/actions/userActions";
 
 export default async function DashboardLayout({
@@ -52,11 +50,8 @@ export default async function DashboardLayout({
             <NavLinks />
           </div>
 
-          {/* Right-side: PWA button + Theme Toggle + Profile + Desktop Logout */}
+          {/* Right-side: Profile + Desktop Logout */}
           <div style={styles.userSection}>
-            <PWAInstallButton />
-            <ThemeToggle />
-
             <Link href="/profile" className="desktop-only" style={styles.profileBadge}>
               <span style={styles.avatar}>
                 {displayName.charAt(0).toUpperCase()}
