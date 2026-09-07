@@ -122,6 +122,20 @@ function getCategoryIcon(category: string, size = 15) {
   }
 }
 
+function formatPillDate(dateStr: string) {
+  if (!dateStr) return "Today";
+  const today = new Date().toISOString().split("T")[0];
+  if (dateStr === today) return "Today";
+  try {
+    const [y, m, d] = dateStr.split("-");
+    if (!y || !m || !d) return dateStr;
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function GroupDetailsClient({
   currentUser,
   group,
@@ -1076,43 +1090,19 @@ export default function GroupDetailsClient({
             {formError && <div style={styles.modalErrorBox}>{formError}</div>}
 
             <form onSubmit={editingExpenseId ? handleEditExpenseSubmit : handleAddExpenseSubmit} style={styles.modalForm}>
-              {/* Row 1: Description & Category with icons */}
-              <div className="modal-form-row-responsive" style={{ ...styles.modalFormRow, gap: "0.65rem", marginBottom: "0.65rem" }}>
-                <div style={{ flex: 1.4 }}>
-                  <label htmlFor="expDesc" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Description *</label>
-                  <input
-                    id="expDesc"
-                    type="text"
-                    required
-                    placeholder="What was this for?"
-                    value={expenseDesc}
-                    onChange={(e) => setExpenseDesc(e.target.value)}
-                    className="form-input"
-                    style={{ height: "38px", fontSize: "0.88rem" }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label htmlFor="expCat" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Category</label>
+              {/* Hero Amount & Currency */}
+              <div>
+                <label htmlFor="expAmt" className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Amount *</label>
+                <div className="expense-hero-card">
                   <select
-                    id="expCat"
-                    value={expenseCategory}
-                    onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="form-input"
-                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
+                    id="expCurr"
+                    value={expenseCurrency}
+                    onChange={(e) => setExpenseCurrency(e.target.value)}
+                    className="expense-currency-select"
+                    title="Select currency"
                   >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {CATEGORY_EMOJIS[cat] || "🏷️"} {cat}
-                      </option>
-                    ))}
+                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
-                </div>
-              </div>
-
-              {/* Row 2: Amount, Currency & Date with Calendar Icon */}
-              <div className="modal-form-row-responsive" style={{ ...styles.modalFormRow, gap: "0.65rem", marginBottom: "0.65rem" }}>
-                <div style={{ flex: 1.2 }}>
-                  <label htmlFor="expAmt" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Amount *</label>
                   <input
                     id="expAmt"
                     type="number"
@@ -1121,36 +1111,62 @@ export default function GroupDetailsClient({
                     placeholder="0.00"
                     value={expenseAmt}
                     onChange={(e) => setExpenseAmt(e.target.value)}
-                    className="form-input"
-                    style={{ height: "38px", fontSize: "0.88rem" }}
+                    className={`expense-hero-input ${expenseAmt && parseFloat(expenseAmt) > 0 ? "has-value" : ""}`}
+                    autoFocus
                   />
                 </div>
-                <div style={{ width: "95px" }}>
-                  <label htmlFor="expCurr" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Currency</label>
-                  <select
-                    id="expCurr"
-                    value={expenseCurrency}
-                    onChange={(e) => setExpenseCurrency(e.target.value)}
+              </div>
+
+              {/* Description & Clickable Date Pill */}
+              <div style={{ display: "flex", gap: "0.65rem", alignItems: "flex-end" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <label htmlFor="expDesc" className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Description *</label>
+                  <input
+                    id="expDesc"
+                    type="text"
+                    required
+                    placeholder="What was this for?"
+                    value={expenseDesc}
+                    onChange={(e) => setExpenseDesc(e.target.value)}
                     className="form-input"
-                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
-                  >
-                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                    style={{ minHeight: "44px", fontSize: "0.92rem" }}
+                  />
                 </div>
-                <div style={{ flex: 1.1 }}>
-                  <label htmlFor="expDate" className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Date *</label>
-                  <div style={{ position: "relative" }}>
-                    <Calendar size={14} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+                <div style={{ flexShrink: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Date</label>
+                  <div className="expense-date-pill" title="Click to change date">
+                    <Calendar size={15} color="var(--primary)" />
+                    <span>{formatPillDate(expenseDate)}</span>
                     <input
                       id="expDate"
                       type="date"
                       required
                       value={expenseDate}
                       onChange={(e) => setExpenseDate(e.target.value)}
-                      className="form-input"
-                      style={{ height: "38px", fontSize: "0.82rem", paddingLeft: "1.9rem", background: "var(--input-bg)" }}
+                      className="expense-date-native-input"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Category 1-Tap Chips */}
+              <div>
+                <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.35rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Category</label>
+                <div className="category-chip-row">
+                  {CATEGORIES.map((cat) => {
+                    const isSelected = expenseCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setExpenseCategory(cat)}
+                        className={`category-chip ${isSelected ? "active" : ""}`}
+                      >
+                        <span>{CATEGORY_EMOJIS[cat] || "🏷️"}</span>
+                        <span>{cat}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1181,29 +1197,29 @@ export default function GroupDetailsClient({
 
               <div className="modal-form-row-responsive" style={styles.modalFormRow}>
                 <div style={{ flex: 1 }}>
-                  <label htmlFor="expPayer" className="form-label">Paid By</label>
+                  <label htmlFor="expPayer" className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Paid By</label>
                   <select
                     id="expPayer"
                     value={expensePayer}
                     onChange={(e) => setExpensePayer(e.target.value)}
                     className="form-input"
-                    style={{ background: "var(--input-bg)" }}
+                    style={{ minHeight: "44px", fontSize: "0.9rem" }}
                   >
                     {members.map((m) => (
                       <option key={m.id} value={m.id}>
-                        {m.name === currentUser.username ? "You" : m.name}
+                        {m.id === currentUser.userId ? "You" : m.name}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label htmlFor="expSplit" className="form-label">Split Type</label>
+                  <label htmlFor="expSplit" className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Split Type</label>
                   <select
                     id="expSplit"
                     value={expenseSplitType}
                     onChange={(e) => setExpenseSplitType(e.target.value as "EQUAL" | "UNEQUAL" | "PERCENTAGE" | "SHARES")}
                     className="form-input"
-                    style={{ background: "var(--input-bg)" }}
+                    style={{ minHeight: "44px", fontSize: "0.9rem" }}
                   >
                     <option value="EQUAL">Equally</option>
                     <option value="UNEQUAL">Unequally (Exact amounts)</option>
@@ -1560,43 +1576,46 @@ export default function GroupDetailsClient({
                   </div>
                 </div>
 
-                <div className="modal-form-row-responsive" style={styles.modalFormRow}>
-                  <div style={{ flex: 1.1 }}>
-                    <label htmlFor="settleDate" className="form-label">Date *</label>
-                    <input
-                      id="settleDate"
-                      type="date"
-                      required
-                      value={settleDate}
-                      onChange={(e) => setSettleDate(e.target.value)}
-                      className="form-input"
-                      style={{ background: "var(--input-bg)" }}
-                    />
+                <div className="modal-form-row-responsive" style={{ ...styles.modalFormRow, alignItems: "flex-end" }}>
+                  <div style={{ flex: 1.2 }}>
+                    <label htmlFor="settleAmt" className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Amount Paid *</label>
+                    <div className="expense-hero-card" style={{ padding: "0.4rem 0.75rem", minHeight: "44px" }}>
+                      <select
+                        id="settleCurr"
+                        value={settleCurrency}
+                        onChange={(e) => setSettleCurrency(e.target.value)}
+                        className="expense-currency-select"
+                        style={{ minHeight: "36px", fontSize: "0.88rem" }}
+                      >
+                        {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <input
+                        id="settleAmt"
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="0.00"
+                        value={settleAmt}
+                        onChange={(e) => setSettleAmt(e.target.value)}
+                        className={`expense-hero-input ${settleAmt && parseFloat(settleAmt) > 0 ? "has-value" : ""}`}
+                        style={{ fontSize: "1.5rem" }}
+                      />
+                    </div>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label htmlFor="settleAmt" className="form-label">Amount Paid</label>
-                    <input
-                      id="settleAmt"
-                      type="number"
-                      step="0.01"
-                      required
-                      placeholder="0.00"
-                      value={settleAmt}
-                      onChange={(e) => setSettleAmt(e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
-                  <div style={{ flex: 0.9 }}>
-                    <label htmlFor="settleCurr" className="form-label">Currency</label>
-                    <select
-                      id="settleCurr"
-                      value={settleCurrency}
-                      onChange={(e) => setSettleCurrency(e.target.value)}
-                      className="form-input"
-                      style={{ background: "var(--input-bg)" }}
-                    >
-                      {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Date</label>
+                    <div className="expense-date-pill" title="Click to change date" style={{ width: "100%", justifyContent: "center", minHeight: "44px" }}>
+                      <Calendar size={15} color="var(--primary)" />
+                      <span>{formatPillDate(settleDate)}</span>
+                      <input
+                        id="settleDate"
+                        type="date"
+                        required
+                        value={settleDate}
+                        onChange={(e) => setSettleDate(e.target.value)}
+                        className="expense-date-native-input"
+                      />
+                    </div>
                   </div>
                 </div>
 

@@ -32,6 +32,7 @@ export default function GlobalAddExpenseFab({
   const [groups, setGroups] = useState<GroupInfo[]>(initialGroups);
   const [friends, setFriends] = useState<FriendInfo[]>(initialFriends);
   const [showModal, setShowModal] = useState(false);
+  const [activeFriendId, setActiveFriendId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"group" | "friend">(() =>
     pathname?.startsWith("/friends") ? "friend" : "group"
   );
@@ -42,6 +43,16 @@ export default function GlobalAddExpenseFab({
     () => true,
     () => false
   );
+
+  // Listen for active friend changes inside FriendsClient
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent<{ friendId: string | null }>;
+      setActiveFriendId(custom.detail?.friendId || null);
+    };
+    window.addEventListener("active-friend-changed", handler);
+    return () => window.removeEventListener("active-friend-changed", handler);
+  }, []);
 
   // Detect current group if inside /groups/[id]
   const groupMatch = pathname?.match(/^\/groups\/([^/]+)$/);
@@ -63,11 +74,25 @@ export default function GlobalAddExpenseFab({
   }, [showModal]);
 
   function openModal() {
+    // 1. If inside an active group, immediately open the group's expense modal
+    if (currentGroupId && !isSpecialGroupRoute) {
+      window.dispatchEvent(new CustomEvent("open-group-expense-modal"));
+      return;
+    }
+
+    // 2. If inside an active friend's chat/ledger, immediately open that friend's expense modal
+    if (pathname?.startsWith("/friends") && activeFriendId) {
+      window.dispatchEvent(new CustomEvent("open-active-friend-expense-modal"));
+      return;
+    }
+
+    // 3. If on friends page without friend open, show friends only
     if (pathname?.startsWith("/friends")) {
       setActiveTab("friend");
     } else {
       setActiveTab("group");
     }
+
     setShowModal(true);
     getUserGroups().then((g) => setGroups(g)).catch(() => {});
     getFriends().then((f) => setFriends(f)).catch(() => {});
@@ -142,6 +167,9 @@ export default function GlobalAddExpenseFab({
               <div>
                 <h2 style={styles.modalTitle}>Add an expense</h2>
                 <p style={styles.modalSubtitle}>Who are you splitting with?</p>
+                <p style={styles.modalSubtitle}>
+                  {pathname?.startsWith("/friends") ? "Choose a friend to split with" : "Who are you splitting with?"}
+                </p>
               </div>
               <button
                 type="button"
@@ -180,34 +208,36 @@ export default function GlobalAddExpenseFab({
               </div>
             )}
 
-            {/* Selector Tabs: Group vs Friend */}
-            <div style={styles.tabBar}>
-              <button
-                type="button"
-                onClick={() => setActiveTab("group")}
-                style={{
-                  ...styles.tabBtn,
-                  ...(activeTab === "group" ? styles.tabBtnActive : {}),
-                }}
-              >
-                <Users size={16} />
-                <span>In a Group</span>
-                <span style={styles.tabBadge}>{groups.length}</span>
-              </button>
+            {/* Selector Tabs: Group vs Friend (Hidden when already on friends page) */}
+            {!pathname?.startsWith("/friends") && (
+              <div style={styles.tabBar}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("group")}
+                  style={{
+                    ...styles.tabBtn,
+                    ...(activeTab === "group" ? styles.tabBtnActive : {}),
+                  }}
+                >
+                  <Users size={16} />
+                  <span>In a Group</span>
+                  <span style={styles.tabBadge}>{groups.length}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab("friend")}
-                style={{
-                  ...styles.tabBtn,
-                  ...(activeTab === "friend" ? styles.tabBtnActive : {}),
-                }}
-              >
-                <User size={16} />
-                <span>With a Friend</span>
-                <span style={styles.tabBadge}>{friends.length}</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("friend")}
+                  style={{
+                    ...styles.tabBtn,
+                    ...(activeTab === "friend" ? styles.tabBtnActive : {}),
+                  }}
+                >
+                  <User size={16} />
+                  <span>With a Friend</span>
+                  <span style={styles.tabBadge}>{friends.length}</span>
+                </button>
+              </div>
+            )}
 
             {/* List Body */}
             <div style={styles.listContainer}>

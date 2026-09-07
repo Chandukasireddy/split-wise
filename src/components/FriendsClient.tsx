@@ -74,6 +74,27 @@ function getCategoryIcon(cat: string, size = 16) {
   }
 }
 
+const CURRENCIES = [
+  "EUR", "USD", "GBP", "INR", "PLN", "JPY", "CAD", "AUD", "CHF", "CNY",
+  "SEK", "NOK", "DKK", "BRL", "MXN", "SGD", "HKD", "KRW", "TRY", "ZAR",
+  "AED", "THB", "MYR", "IDR", "PHP", "CZK", "HUF", "RON", "BGN", "HRK",
+  "NZD", "PKR", "BDT", "VND", "EGP", "UAH", "NGN", "KES", "GHS", "ILS",
+];
+
+function formatPillDate(dateStr: string) {
+  if (!dateStr) return "Today";
+  const today = new Date().toISOString().split("T")[0];
+  if (dateStr === today) return "Today";
+  try {
+    const [y, m, d] = dateStr.split("-");
+    if (!y || !m || !d) return dateStr;
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return dateStr;
+  }
+}
+
 
 
 function formatCurrency(amount: number, currency: string = "EUR") {
@@ -221,12 +242,31 @@ export default function FriendsClient({
       }
     };
 
+    const activeFriendHandler = () => {
+      if (selectedFriend) {
+        handleFriendExpense(selectedFriend.id);
+      }
+    };
+
     window.addEventListener("open-friend-expense-modal", eventHandler);
+    window.addEventListener("open-active-friend-expense-modal", activeFriendHandler);
     return () => {
       if (timer) clearTimeout(timer);
       window.removeEventListener("open-friend-expense-modal", eventHandler);
+      window.removeEventListener("open-active-friend-expense-modal", activeFriendHandler);
     };
-  }, [friends, currentUser]);
+  }, [friends, currentUser, selectedFriend]);
+
+  // Broadcast active friend state to global FAB
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("active-friend-changed", {
+          detail: { friendId: selectedFriend ? selectedFriend.id : null },
+        })
+      );
+    }
+  }, [selectedFriend]);
 
   // Load ledger when selectedFriend changes
   useEffect(() => {
@@ -958,83 +998,81 @@ export default function FriendsClient({
             {expenseError && <div style={styles.errorBox}>{expenseError}</div>}
 
             <form onSubmit={handleAddExpenseSubmit} style={styles.form}>
-              {/* Row 1: Description & Category with icons */}
-              <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.65rem" }}>
-                <div style={{ flex: 1.4 }}>
-                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Description *</label>
-                  <input
-                    type="text"
-                    placeholder="What was this for?"
-                    value={expenseDesc}
-                    onChange={(e) => setExpenseDesc(e.target.value)}
-                    className="form-input"
-                    style={{ height: "38px", fontSize: "0.88rem" }}
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Category</label>
+              {/* Hero Amount & Currency */}
+              <div>
+                <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Amount *</label>
+                <div className="expense-hero-card">
                   <select
-                    value={expenseCategory}
-                    onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="form-input"
-                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
+                    value={expenseCurrency}
+                    onChange={(e) => setExpenseCurrency(e.target.value)}
+                    className="expense-currency-select"
+                    title="Select currency"
                   >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {CATEGORY_EMOJIS[cat] || "🏷️"} {cat}
-                      </option>
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              {/* Row 2: Amount, Currency & Date with Calendar icon */}
-              <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.65rem" }}>
-                <div style={{ flex: 1.2 }}>
-                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Amount *</label>
                   <input
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                     value={expenseAmt}
                     onChange={(e) => setExpenseAmt(e.target.value)}
+                    className={`expense-hero-input ${expenseAmt && parseFloat(expenseAmt) > 0 ? "has-value" : ""}`}
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Description & Clickable Date Pill */}
+              <div style={{ display: "flex", gap: "0.65rem", alignItems: "flex-end" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Description *</label>
+                  <input
+                    type="text"
+                    placeholder="What was this for?"
+                    value={expenseDesc}
+                    onChange={(e) => setExpenseDesc(e.target.value)}
                     className="form-input"
-                    style={{ height: "38px", fontSize: "0.88rem" }}
+                    style={{ minHeight: "44px", fontSize: "0.92rem" }}
                     required
                   />
                 </div>
-                <div style={{ width: "95px" }}>
-                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Currency</label>
-                  <select
-                    value={expenseCurrency}
-                    onChange={(e) => setExpenseCurrency(e.target.value)}
-                    className="form-input"
-                    style={{ height: "38px", fontSize: "0.85rem", background: "var(--input-bg)" }}
-                  >
-                    <option value="EUR">EUR (€)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="INR">INR (₹)</option>
-                    <option value="PLN">PLN (zł)</option>
-                    <option value="CAD">CAD ($)</option>
-                    <option value="AUD">AUD ($)</option>
-                    <option value="JPY">JPY (¥)</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1.1 }}>
-                  <label className="form-label" style={{ fontSize: "0.7rem", marginBottom: "0.2rem" }}>Date *</label>
-                  <div style={{ position: "relative" }}>
-                    <Calendar size={14} style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+                <div style={{ flexShrink: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Date</label>
+                  <div className="expense-date-pill" title="Click to change date">
+                    <Calendar size={15} color="var(--primary)" />
+                    <span>{formatPillDate(expenseDate)}</span>
                     <input
                       type="date"
                       value={expenseDate}
                       onChange={(e) => setExpenseDate(e.target.value)}
-                      className="form-input"
-                      style={{ height: "38px", fontSize: "0.82rem", paddingLeft: "1.9rem", background: "var(--input-bg)" }}
+                      className="expense-date-native-input"
+                      required
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Category 1-Tap Chips */}
+              <div>
+                <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.35rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Category</label>
+                <div className="category-chip-row">
+                  {CATEGORIES.map((cat) => {
+                    const isSelected = expenseCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setExpenseCategory(cat)}
+                        className={`category-chip ${isSelected ? "active" : ""}`}
+                      >
+                        <span>{CATEGORY_EMOJIS[cat] || "🏷️"}</span>
+                        <span>{cat}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1172,70 +1210,78 @@ export default function FriendsClient({
             {editError && <div style={styles.errorBox}>{editError}</div>}
 
             <form onSubmit={handleEditExpenseSubmit} style={styles.form}>
-              <div style={styles.formGroup}>
-                <label className="form-label">Description</label>
-                <input
-                  type="text"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="form-input"
-                  required
-                />
-              </div>
-
-              <div style={styles.formRow}>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">Amount</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editAmt}
-                    onChange={(e) => setEditAmt(e.target.value)}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                <div style={{ width: "110px" }}>
-                  <label className="form-label">Currency</label>
+              {/* Hero Amount & Currency */}
+              <div>
+                <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Amount *</label>
+                <div className="expense-hero-card">
                   <select
                     value={editCurrency}
                     onChange={(e) => setEditCurrency(e.target.value)}
-                    className="form-select"
+                    className="expense-currency-select"
+                    title="Select currency"
                   >
-                    <option value="EUR">EUR (€)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="INR">INR (₹)</option>
-                    <option value="CAD">CAD ($)</option>
-                    <option value="AUD">AUD ($)</option>
-                    <option value="JPY">JPY (¥)</option>
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={editAmt}
+                    onChange={(e) => setEditAmt(e.target.value)}
+                    className={`expense-hero-input ${editAmt && parseFloat(editAmt) > 0 ? "has-value" : ""}`}
+                    required
+                  />
                 </div>
               </div>
 
-              <div style={styles.formRow}>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">Category</label>
-                  <select
-                    value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="form-select"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label className="form-label">Date</label>
+              {/* Description & Clickable Date Pill */}
+              <div style={{ display: "flex", gap: "0.65rem", alignItems: "flex-end" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Description *</label>
                   <input
-                    type="date"
-                    value={editDate}
-                    onChange={(e) => setEditDate(e.target.value)}
+                    type="text"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
                     className="form-input"
+                    style={{ minHeight: "44px", fontSize: "0.92rem" }}
+                    required
                   />
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Date</label>
+                  <div className="expense-date-pill" title="Click to change date">
+                    <Calendar size={15} color="var(--primary)" />
+                    <span>{formatPillDate(editDate)}</span>
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="expense-date-native-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Category 1-Tap Chips */}
+              <div>
+                <label className="form-label" style={{ fontSize: "0.72rem", marginBottom: "0.35rem", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", fontWeight: 600 }}>Category</label>
+                <div className="category-chip-row">
+                  {CATEGORIES.map((cat) => {
+                    const isSelected = editCategory === cat;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setEditCategory(cat)}
+                        className={`category-chip ${isSelected ? "active" : ""}`}
+                      >
+                        <span>{CATEGORY_EMOJIS[cat] || "🏷️"}</span>
+                        <span>{cat}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
