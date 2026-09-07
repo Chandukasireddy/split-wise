@@ -140,13 +140,14 @@ export interface UserOverallBalances {
     name: string;
     description: string | null;
     balances: Record<string, number>; // currency -> user's net balance in group
+    latestActivityAt: string | null;
   }[];
 }
 
 export async function getUserOverallBalances(
   userId: string
 ): Promise<UserOverallBalances> {
-  // Find all groups user belongs to
+  // Find all groups user belongs to with latest expense and payment timestamps
   const userGroups = await db.groupMember.findMany({
     where: { userId },
     select: {
@@ -156,6 +157,17 @@ export async function getUserOverallBalances(
           id: true,
           name: true,
           description: true,
+          createdAt: true,
+          expenses: {
+            select: { createdAt: true, date: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+          payments: {
+            select: { createdAt: true, date: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
       },
     },
@@ -192,13 +204,30 @@ export async function getUserOverallBalances(
       }
     }
 
+    const expTime = ug.group.expenses[0]
+      ? Math.max(ug.group.expenses[0].createdAt.getTime(), ug.group.expenses[0].date.getTime())
+      : 0;
+    const payTime = ug.group.payments[0]
+      ? Math.max(ug.group.payments[0].createdAt.getTime(), ug.group.payments[0].date.getTime())
+      : 0;
+    const groupCreatedTime = ug.group.createdAt ? ug.group.createdAt.getTime() : 0;
+    const latestTime = Math.max(expTime, payTime, groupCreatedTime);
+
     groupsList.push({
       id: ug.group.id,
       name: ug.group.name,
       description: ug.group.description,
       balances: groupBalancesMap,
+      latestActivityAt: latestTime > 0 ? new Date(latestTime).toISOString() : null,
     });
   }
+
+  // Sort groups by latest activity descending (most recently active group first)
+  groupsList.sort((a, b) => {
+    const tA = a.latestActivityAt ? new Date(a.latestActivityAt).getTime() : 0;
+    const tB = b.latestActivityAt ? new Date(b.latestActivityAt).getTime() : 0;
+    return tB - tA;
+  });
 
   // Round values
   const roundRecord = (rec: Record<string, number>) => {

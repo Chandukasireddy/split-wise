@@ -21,9 +21,35 @@ interface GlobalAddExpenseFabProps {
   currentUserId: string;
 }
 
+function applyCustomOrder<T extends { id: string }>(items: T[], key: string): T[] {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const orderIds: string[] = JSON.parse(saved);
+      if (Array.isArray(orderIds) && orderIds.length > 0) {
+        const map = new Map(items.map((it) => [it.id, it]));
+        const ordered: T[] = [];
+        for (const id of orderIds) {
+          const it = map.get(id);
+          if (it) {
+            ordered.push(it);
+            map.delete(id);
+          }
+        }
+        map.forEach((it) => ordered.push(it));
+        return ordered;
+      }
+    }
+  } catch {
+    // Ignore
+  }
+  return items;
+}
+
 export default function GlobalAddExpenseFab({
   initialGroups,
   initialFriends,
+  currentUserId,
 }: GlobalAddExpenseFabProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -36,6 +62,14 @@ export default function GlobalAddExpenseFab({
   const [activeTab, setActiveTab] = useState<"group" | "friend">(() =>
     pathname?.startsWith("/friends") ? "friend" : "group"
   );
+
+  // Apply custom order if saved
+  useEffect(() => {
+    if (currentUserId) {
+      setGroups((prev) => applyCustomOrder(prev, `splitwise_groups_order_${currentUserId}`));
+      setFriends((prev) => applyCustomOrder(prev, `splitwise_friends_order_${currentUserId}`));
+    }
+  }, [currentUserId]);
 
   // Portal mount flag
   const mounted = React.useSyncExternalStore(
@@ -94,8 +128,12 @@ export default function GlobalAddExpenseFab({
     }
 
     setShowModal(true);
-    getUserGroups().then((g) => setGroups(g)).catch(() => {});
-    getFriends().then((f) => setFriends(f)).catch(() => {});
+    getUserGroups().then((g) => {
+      setGroups(currentUserId ? applyCustomOrder(g, `splitwise_groups_order_${currentUserId}`) : g);
+    }).catch(() => {});
+    getFriends().then((f) => {
+      setFriends(currentUserId ? applyCustomOrder(f, `splitwise_friends_order_${currentUserId}`) : f);
+    }).catch(() => {});
   }
 
   // Hide the FAB on group creation, joining, or profile/me pages

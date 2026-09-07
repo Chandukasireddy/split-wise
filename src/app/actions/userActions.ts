@@ -90,12 +90,14 @@ export interface FriendInfo {
   username: string;
   sharedGroups: string[];
   balances: Record<string, number>;
+  latestActivityAt?: string | null;
 }
 
 export interface GroupInfo {
   id: string;
   name: string;
   memberCount?: number;
+  latestActivityAt?: string | null;
 }
 
 export interface FriendLedgerTransaction {
@@ -133,6 +135,7 @@ export async function getFriends(): Promise<FriendInfo[]> {
   }
 
   const friendsMap: Record<string, FriendInfo> = {};
+  const friendActivityMap: Record<string, number> = {};
 
   // 1. Get all group members that share groups with the user
   const userGroups = await db.groupMember.findMany({
@@ -174,6 +177,57 @@ export async function getFriends(): Promise<FriendInfo[]> {
         }
       }
     });
+
+    // Check recent group transactions for shared group activity
+    const recentGroupExpenses = await db.expense.findMany({
+      where: { groupId: { in: groupIds } },
+      select: {
+        createdAt: true,
+        date: true,
+        payerId: true,
+        splits: { select: { userId: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    for (const exp of recentGroupExpenses) {
+      const expTime = Math.max(exp.createdAt.getTime(), exp.date.getTime());
+      if (friendsMap[exp.payerId]) {
+        const cur = friendActivityMap[exp.payerId] || 0;
+        if (expTime > cur) friendActivityMap[exp.payerId] = expTime;
+      }
+      for (const split of exp.splits) {
+        if (friendsMap[split.userId]) {
+          const cur = friendActivityMap[split.userId] || 0;
+          if (expTime > cur) friendActivityMap[split.userId] = expTime;
+        }
+      }
+    }
+
+    const recentGroupPayments = await db.payment.findMany({
+      where: { groupId: { in: groupIds } },
+      select: {
+        createdAt: true,
+        date: true,
+        payerId: true,
+        payeeId: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    for (const pay of recentGroupPayments) {
+      const payTime = Math.max(pay.createdAt.getTime(), pay.date.getTime());
+      if (friendsMap[pay.payerId]) {
+        const cur = friendActivityMap[pay.payerId] || 0;
+        if (payTime > cur) friendActivityMap[pay.payerId] = payTime;
+      }
+      if (friendsMap[pay.payeeId]) {
+        const cur = friendActivityMap[pay.payeeId] || 0;
+        if (payTime > cur) friendActivityMap[pay.payeeId] = payTime;
+      }
+    }
   }
 
   // 2. Fetch direct 1-on-1 expenses (groupId is null)
@@ -197,6 +251,8 @@ export async function getFriends(): Promise<FriendInfo[]> {
 
   for (const exp of directExpenses) {
     const curr = exp.currency;
+    const expTime = Math.max(exp.createdAt.getTime(), exp.date.getTime());
+
     if (exp.payerId === session.userId) {
       // Current user paid: each other split user owes current user
       for (const split of exp.splits) {
@@ -212,6 +268,9 @@ export async function getFriends(): Promise<FriendInfo[]> {
           }
           const prev = friendsMap[split.userId].balances[curr] || 0;
           friendsMap[split.userId].balances[curr] = parseFloat((prev + split.amount).toFixed(2));
+
+          const cur = friendActivityMap[split.userId] || 0;
+          if (expTime > cur) friendActivityMap[split.userId] = expTime;
         }
       }
     } else {
@@ -230,6 +289,9 @@ export async function getFriends(): Promise<FriendInfo[]> {
         }
         const prev = friendsMap[payerId].balances[curr] || 0;
         friendsMap[payerId].balances[curr] = parseFloat((prev - mySplit.amount).toFixed(2));
+
+        const cur = friendActivityMap[payerId] || 0;
+        if (expTime > cur) friendActivityMap[payerId] = expTime;
       }
     }
   }
@@ -251,6 +313,8 @@ export async function getFriends(): Promise<FriendInfo[]> {
 
   for (const pay of directPayments) {
     const curr = pay.currency;
+    const payTime = Math.max(pay.createdAt.getTime(), pay.date.getTime());
+
     if (pay.payerId === session.userId) {
       // Current user paid friend: reduces debt or friend owes user
       const payeeId = pay.payeeId;
@@ -265,6 +329,9 @@ export async function getFriends(): Promise<FriendInfo[]> {
       }
       const prev = friendsMap[payeeId].balances[curr] || 0;
       friendsMap[payeeId].balances[curr] = parseFloat((prev + pay.amount).toFixed(2));
+
+      const cur = friendActivityMap[payeeId] || 0;
+      if (payTime > cur) friendActivityMap[payeeId] = payTime;
     } else {
       // Friend paid current user: reduces what friend owes
       const payerId = pay.payerId;
@@ -279,19 +346,38 @@ export async function getFriends(): Promise<FriendInfo[]> {
       }
       const prev = friendsMap[payerId].balances[curr] || 0;
       friendsMap[payerId].balances[curr] = parseFloat((prev - pay.amount).toFixed(2));
+
+      const cur = friendActivityMap[payerId] || 0;
+      if (payTime > cur) friendActivityMap[payerId] = payTime;
     }
   }
 
-  // Clean near-zero balances
-  for (const f of Object.values(friendsMap)) {
+  // Clean near-zero balances and attach latestActivityAt
+  const friendsList: FriendInfo[] = Object.values(friendsMap).map((f) => {
+    const cleanedBalances: Record<string, number> = {};
     for (const [c, b] of Object.entries(f.balances)) {
-      if (Math.abs(b) < 0.005) {
-        f.balances[c] = 0;
+      if (Math.abs(b) >= 0.005) {
+        cleanedBalances[c] = b;
+      } else {
+        cleanedBalances[c] = 0;
       }
     }
-  }
+    const actTime = friendActivityMap[f.id];
+    return {
+      ...f,
+      balances: cleanedBalances,
+      latestActivityAt: actTime ? new Date(actTime).toISOString() : null,
+    };
+  });
 
-  return Object.values(friendsMap);
+  // Sort friends with latest activity first
+  friendsList.sort((a, b) => {
+    const tA = a.latestActivityAt ? new Date(a.latestActivityAt).getTime() : 0;
+    const tB = b.latestActivityAt ? new Date(b.latestActivityAt).getTime() : 0;
+    return tB - tA;
+  });
+
+  return friendsList;
 }
 
 export async function getFriendLedger(friendId: string): Promise<FriendLedgerData | null> {
@@ -465,16 +551,46 @@ export async function getUserGroups(): Promise<GroupInfo[]> {
         select: {
           id: true,
           name: true,
+          createdAt: true,
           _count: { select: { members: true } },
+          expenses: {
+            select: { createdAt: true, date: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+          payments: {
+            select: { createdAt: true, date: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
       },
     },
   });
 
-  return userGroups.map((g) => g.group);
-  return userGroups.map((g) => ({
-    id: g.group.id,
-    name: g.group.name,
-    memberCount: g.group._count?.members,
-  }));
+  const groupsList: GroupInfo[] = userGroups.map((g) => {
+    const expTime = g.group.expenses[0]
+      ? Math.max(g.group.expenses[0].createdAt.getTime(), g.group.expenses[0].date.getTime())
+      : 0;
+    const payTime = g.group.payments[0]
+      ? Math.max(g.group.payments[0].createdAt.getTime(), g.group.payments[0].date.getTime())
+      : 0;
+    const groupCreated = g.group.createdAt ? g.group.createdAt.getTime() : 0;
+    const latest = Math.max(expTime, payTime, groupCreated);
+
+    return {
+      id: g.group.id,
+      name: g.group.name,
+      memberCount: g.group._count?.members,
+      latestActivityAt: latest > 0 ? new Date(latest).toISOString() : null,
+    };
+  });
+
+  groupsList.sort((a, b) => {
+    const tA = a.latestActivityAt ? new Date(a.latestActivityAt).getTime() : 0;
+    const tB = b.latestActivityAt ? new Date(b.latestActivityAt).getTime() : 0;
+    return tB - tA;
+  });
+
+  return groupsList;
 }

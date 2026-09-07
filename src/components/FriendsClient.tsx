@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Search,
@@ -19,6 +19,9 @@ import {
   Receipt,
   PiggyBank,
   Calendar,
+  GripVertical,
+  RotateCcw,
+  Check,
 } from "lucide-react";
 import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
 import {
@@ -120,6 +123,168 @@ export default function FriendsClient({
 }: FriendsClientProps) {
   const [friends, setFriends] = useState<FriendInfo[]>(initialFriends);
   const [selectedFriend, setSelectedFriend] = useState<FriendInfo | null>(null);
+
+  // Draggable / Custom sorting state
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [hasCustomOrder, setHasCustomOrder] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const touchStartY = useRef<number>(0);
+  const touchCurrentIndex = useRef<number | null>(null);
+
+  const friendsStorageKey = `splitwise_friends_order_${currentUser?.userId || "guest"}`;
+
+  // Load custom order from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(friendsStorageKey);
+      if (saved) {
+        const orderIds: string[] = JSON.parse(saved);
+        if (Array.isArray(orderIds) && orderIds.length > 0) {
+          const map = new Map(initialFriends.map((f) => [f.id, f]));
+          const ordered: FriendInfo[] = [];
+          for (const id of orderIds) {
+            const item = map.get(id);
+            if (item) {
+              ordered.push(item);
+              map.delete(id);
+            }
+          }
+          map.forEach((item) => ordered.push(item));
+          setFriends(ordered);
+          setHasCustomOrder(true);
+          return;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    setFriends(initialFriends);
+    setHasCustomOrder(false);
+  }, [initialFriends, friendsStorageKey]);
+
+  function saveFriendsOrder(newFriends: FriendInfo[]) {
+    try {
+      const orderIds = newFriends.map((f) => f.id);
+      localStorage.setItem(friendsStorageKey, JSON.stringify(orderIds));
+      setHasCustomOrder(true);
+    } catch {
+      // Ignore
+    }
+  }
+
+  function handleResetFriendsOrder() {
+    try {
+      localStorage.removeItem(friendsStorageKey);
+    } catch {
+      // Ignore
+    }
+    const sorted = [...initialFriends].sort((a, b) => {
+      const tA = a.latestActivityAt ? new Date(a.latestActivityAt).getTime() : 0;
+      const tB = b.latestActivityAt ? new Date(b.latestActivityAt).getTime() : 0;
+      return tB - tA;
+    });
+    setFriends(sorted);
+    setHasCustomOrder(false);
+    setIsReorderMode(false);
+  }
+
+  // HTML5 Mouse Drag handlers
+  function handleFriendDragStart(index: number, e: React.DragEvent) {
+    if (!isReorderMode) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  }
+
+  function handleFriendDragOver(index: number, e: React.DragEvent) {
+    if (!isReorderMode || draggedIndex === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  }
+
+  function handleFriendDrop(targetIndex: number, e: React.DragEvent) {
+    if (!isReorderMode || draggedIndex === null) return;
+    e.preventDefault();
+    if (draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const updated = [...friends];
+    const [moved] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, moved);
+    setFriends(updated);
+    saveFriendsOrder(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }
+
+  function handleFriendDragEnd() {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }
+
+  // Mobile Touch Drag handlers
+  function handleFriendTouchStart(index: number, e: React.TouchEvent) {
+    if (!isReorderMode) return;
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentIndex.current = index;
+    setDraggedIndex(index);
+    setDragOverIndex(index);
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      try {
+        navigator.vibrate(12);
+      } catch {
+        // Ignore
+      }
+    }
+  }
+
+  function handleFriendTouchMove(e: React.TouchEvent) {
+    if (!isReorderMode || touchCurrentIndex.current === null) return;
+    const clientY = e.touches[0].clientY;
+    const clientX = e.touches[0].clientX;
+    const element = document.elementFromPoint(clientX, clientY);
+    if (element) {
+      const card = element.closest("[data-friend-index]") as HTMLElement | null;
+      if (card && card.dataset.friendIndex !== undefined) {
+        const hoverIndex = parseInt(card.dataset.friendIndex, 10);
+        if (!isNaN(hoverIndex) && hoverIndex !== dragOverIndex) {
+          setDragOverIndex(hoverIndex);
+        }
+      }
+    }
+  }
+
+  function handleFriendTouchEnd() {
+    if (!isReorderMode || touchCurrentIndex.current === null) return;
+    const source = touchCurrentIndex.current;
+    const target = dragOverIndex;
+
+    if (target !== null && source !== target) {
+      const updated = [...friends];
+      const [moved] = updated.splice(source, 1);
+      updated.splice(target, 0, moved);
+      setFriends(updated);
+      saveFriendsOrder(updated);
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        try {
+          navigator.vibrate(10);
+        } catch {
+          // Ignore
+        }
+      }
+    }
+
+    touchCurrentIndex.current = null;
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }
 
   // Search / Add friend modal state
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
@@ -635,12 +800,57 @@ export default function FriendsClient({
           </div>
 
           {/* Friends List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                Your Contacts ({friends.length})
-              </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                  Your Contacts
+                </h2>
+                <span style={styles.contactsCountBadge}>{friends.length}</span>
+              </div>
+
+              {friends.length > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+                  {hasCustomOrder && !isReorderMode && (
+                    <button
+                      type="button"
+                      onClick={handleResetFriendsOrder}
+                      style={styles.resetOrderBtn}
+                      title="Reset to default recent activity sorting"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Reset order</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsReorderMode((prev) => !prev)}
+                    style={isReorderMode ? styles.reorderBtnActive : styles.reorderBtn}
+                    title={isReorderMode ? "Finish reordering" : "Reorder contacts"}
+                  >
+                    {isReorderMode ? (
+                      <>
+                        <Check size={13} strokeWidth={2.5} />
+                        <span>Done</span>
+                      </>
+                    ) : (
+                      <>
+                        <GripVertical size={13} />
+                        <span>Reorder</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
+
+            {isReorderMode && (
+              <div style={styles.reorderBanner} className="animate-fade-in">
+                <GripVertical size={14} color="var(--primary)" />
+                <span>Drag handles or cards to reorder contacts</span>
+              </div>
+            )}
 
             {friends.length === 0 ? (
               <div className="glass-card" style={styles.emptyCard}>
@@ -660,25 +870,34 @@ export default function FriendsClient({
                 </button>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
-                {friends.map((friend) => {
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}
+                onTouchMove={isReorderMode ? handleFriendTouchMove : undefined}
+                onTouchEnd={isReorderMode ? handleFriendTouchEnd : undefined}
+              >
+                {friends.map((friend, index) => {
                   const friendCurrs = Object.keys(friend.balances);
                   const hasBal = friendCurrs.some((c) => friend.balances[c] !== 0);
+                  const isDragging = draggedIndex === index;
+                  const isTarget = dragOverIndex === index && draggedIndex !== index;
 
-                  return (
-                    <div
-                      key={friend.id}
-                      onClick={() => handleOpenFriend(friend)}
-                      className="glass-card"
-                      style={styles.friendCard}
-                      role="button"
-                      tabIndex={0}
-                    >
+                  const cardInner = (
+                    <>
                       <div style={styles.friendLeft}>
+                        {isReorderMode && (
+                          <div
+                            style={styles.dragHandle}
+                            onTouchStart={(e) => handleFriendTouchStart(index, e)}
+                            title="Drag to reorder"
+                            aria-label="Drag to reorder"
+                          >
+                            <GripVertical size={18} />
+                          </div>
+                        )}
                         <div style={{ ...styles.avatar, background: getAvatarGradient(friend.id || friend.name) }}>
                           {friend.name.charAt(0).toUpperCase()}
                         </div>
-                        <div style={{ minWidth: 0 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
                           <h3 style={styles.friendName}>{friend.name}</h3>
                         </div>
                       </div>
@@ -711,8 +930,55 @@ export default function FriendsClient({
                             })}
                           </div>
                         )}
-                        <ChevronRight size={17} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                        {!isReorderMode && (
+                          <ChevronRight size={17} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                        )}
                       </div>
+                    </>
+                  );
+
+                  if (isReorderMode) {
+                    return (
+                      <div
+                        key={friend.id}
+                        data-friend-index={index}
+                        draggable={true}
+                        onDragStart={(e) => handleFriendDragStart(index, e)}
+                        onDragOver={(e) => handleFriendDragOver(index, e)}
+                        onDrop={(e) => handleFriendDrop(index, e)}
+                        onDragEnd={handleFriendDragEnd}
+                        className="glass-card"
+                        style={{
+                          ...styles.friendCard,
+                          cursor: "grab",
+                          userSelect: "none",
+                          touchAction: "none",
+                          opacity: isDragging ? 0.45 : 1,
+                          borderColor: isTarget
+                            ? "var(--primary)"
+                            : isDragging
+                            ? "var(--primary)"
+                            : "var(--border-light)",
+                          transform: isTarget ? "scale(1.015)" : "none",
+                          boxShadow: isDragging ? "0 10px 24px rgba(0,0,0,0.5)" : undefined,
+                          transition: "transform 0.18s ease, border-color 0.18s ease, opacity 0.18s ease",
+                        }}
+                      >
+                        {cardInner}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={friend.id}
+                      onClick={() => handleOpenFriend(friend)}
+                      className="glass-card"
+                      style={styles.friendCard}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      {cardInner}
                     </div>
                   );
                 })}
@@ -2173,5 +2439,79 @@ const styles: Record<string, React.CSSProperties> = {
     color: "var(--owed)",
     fontSize: "0.82rem",
     marginBottom: "0.5rem",
+  },
+  contactsCountBadge: {
+    fontSize: "0.72rem",
+    color: "var(--primary)",
+    background: "rgba(16, 185, 129, 0.1)",
+    padding: "0.15rem 0.5rem",
+    borderRadius: "20px",
+    fontWeight: 600,
+  },
+  reorderBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    padding: "0.3rem 0.65rem",
+    fontSize: "0.75rem",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "20px",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+  },
+  reorderBtnActive: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    padding: "0.3rem 0.75rem",
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    color: "#052e16",
+    background: "var(--primary)",
+    border: "1px solid var(--primary)",
+    borderRadius: "20px",
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+    transition: "all 0.15s ease",
+  },
+  resetOrderBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    padding: "0.3rem 0.6rem",
+    fontSize: "0.72rem",
+    fontWeight: 500,
+    color: "var(--text-muted)",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    transition: "color 0.15s ease",
+  },
+  reorderBanner: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.55rem 0.85rem",
+    fontSize: "0.76rem",
+    color: "var(--text-secondary)",
+    background: "rgba(16, 185, 129, 0.06)",
+    border: "1px dashed rgba(16, 185, 129, 0.25)",
+    borderRadius: "10px",
+  },
+  dragHandle: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "28px",
+    height: "28px",
+    borderRadius: "6px",
+    color: "var(--text-muted)",
+    cursor: "grab",
+    touchAction: "none",
+    flexShrink: 0,
+    marginLeft: "-0.2rem",
   },
 };
