@@ -22,6 +22,7 @@ import {
   GripVertical,
   RotateCcw,
   Check,
+  Pencil,
 } from "lucide-react";
 import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
 import {
@@ -340,6 +341,9 @@ export default function FriendsClient({
   const [groupSuccess, setGroupSuccess] = useState<string | null>(null);
   const [groupError, setGroupError] = useState<string | null>(null);
 
+  // Selected Transaction Details state (read-only sheet before edit)
+  const [selectedTxForDetails, setSelectedTxForDetails] = useState<FriendLedgerTransaction | null>(null);
+
   // Portal mount flag
   const mounted = React.useSyncExternalStore(
     () => () => {},
@@ -353,6 +357,8 @@ export default function FriendsClient({
     showEditExpenseModal ||
     showSettleModal ||
     showAddToGroupModal;
+    showAddToGroupModal ||
+    Boolean(selectedTxForDetails);
 
   useEffect(() => {
     if (isAnyModalOpen) {
@@ -363,6 +369,24 @@ export default function FriendsClient({
       };
     }
   }, [isAnyModalOpen]);
+
+  function resetAddExpenseForm() {
+    setExpenseDesc("");
+    setExpenseAmt("");
+    setExpenseCategory("General");
+    setExpenseCurrency("EUR");
+    setExpenseDate(new Date().toISOString().split("T")[0]);
+    setExpensePayerId(currentUser?.userId || "");
+    setSplitEqually(true);
+    setCustomUserAmount("");
+    setCustomFriendAmount("");
+    setExpenseError(null);
+  }
+
+  function closeAddExpenseModal() {
+    setShowAddExpenseModal(false);
+    resetAddExpenseForm();
+  }
 
   // Handle open friend expense modal via URL query param or global event
   useEffect(() => {
@@ -378,6 +402,7 @@ export default function FriendsClient({
         setExpensePayerId(currentUser?.userId || "");
         setSplitEqually(true);
         setExpenseError(null);
+        resetAddExpenseForm();
         setShowAddExpenseModal(true);
       }
     };
@@ -597,6 +622,7 @@ export default function FriendsClient({
     setSplitEqually(true);
     setCustomUserAmount("");
     setCustomFriendAmount("");
+    resetAddExpenseForm();
     setShowAddExpenseModal(true);
   }
 
@@ -653,6 +679,7 @@ export default function FriendsClient({
 
       if (res.success) {
         setShowAddExpenseModal(false);
+        closeAddExpenseModal();
         await reloadLedger(selectedFriend.id);
       } else {
         setExpenseError(res.error || "Failed to create expense.");
@@ -722,22 +749,27 @@ export default function FriendsClient({
   }
 
   // Delete Expense
-  async function handleDeleteExpense() {
-    if (!editingExpense || !selectedFriend) return;
+  async function handleDeleteExpense(expenseId?: string | React.MouseEvent) {
+    const targetId = typeof expenseId === "string" ? expenseId : editingExpense?.id;
+    if (!targetId || !selectedFriend) return;
     if (!confirm("Are you sure you want to delete this expense?")) return;
 
     setDeleteLoading(true);
     try {
-      const res = await deleteExpense(editingExpense.id);
+      const res = await deleteExpense(targetId);
       if (res.success) {
+        setSelectedTxForDetails(null);
         setShowEditExpenseModal(false);
+        setEditingExpense(null);
         await reloadLedger(selectedFriend.id);
       } else {
         setEditError(res.error || "Failed to delete expense.");
+        alert(res.error || "Failed to delete expense.");
       }
     } catch (err) {
       console.error(err);
       setEditError("Failed to delete expense.");
+      alert("Failed to delete expense.");
     } finally {
       setDeleteLoading(false);
     }
@@ -1145,10 +1177,10 @@ export default function FriendsClient({
                             ? "1px solid var(--border-light)"
                             : "none",
                       }}
-                      onClick={() => isExpense && openEditExpenseModal(tx)}
+                      onClick={() => setSelectedTxForDetails(tx)}
                       role="button"
                       tabIndex={0}
-                      title={isExpense ? "Click to edit expense" : "Payment settlement"}
+                      title="Click to view transaction details"
                     >
                       <div style={styles.expenseRowLeft}>
                         {/* Date badge */}
@@ -1237,6 +1269,232 @@ export default function FriendsClient({
       )}
 
       {/* ─────────────────────────────────────────────────────────────
+          MODAL 0: 1-ON-1 TRANSACTION DETAILS (Read-only before edit)
+      ───────────────────────────────────────────────────────────── */}
+      {selectedTxForDetails && mounted && createPortal(
+        <div
+          className="modal-overlay-responsive"
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedTxForDetails(null);
+          }}
+        >
+          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+            <div className="modal-drag-handle" />
+            <div style={styles.modalHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div
+                  style={{
+                    ...styles.categoryIconBadge,
+                    backgroundColor: `${CATEGORY_COLORS[selectedTxForDetails.category] || "#64748b"}15`,
+                    color: CATEGORY_COLORS[selectedTxForDetails.category] || "#64748b",
+                    border: `1px solid ${CATEGORY_COLORS[selectedTxForDetails.category] || "#64748b"}35`,
+                  }}
+                >
+                  {getCategoryIcon(selectedTxForDetails.category, 16)}
+                </div>
+                <h2 style={styles.modalTitle}>
+                  {selectedTxForDetails.type === "expense" ? "Expense Details" : "Payment Settlement"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTxForDetails(null)}
+                className="modal-close-btn-responsive"
+                style={styles.modalCloseBtn}
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem", padding: "0.5rem 0" }}>
+              {/* Hero Amount & Description */}
+              <div style={{ textAlign: "center", padding: "0.25rem 0 0.5rem" }}>
+                <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.03em" }}>
+                  {formatCurrency(selectedTxForDetails.amount, selectedTxForDetails.currency)}
+                </div>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", marginTop: "0.45rem", marginBottom: "0.35rem" }}>
+                  {selectedTxForDetails.description}
+                </h3>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)", background: "var(--surface-hover)", padding: "0.25rem 0.65rem", borderRadius: "20px" }}>
+                  <Calendar size={13} color="var(--primary)" />
+                  <span>{new Date(selectedTxForDetails.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>
+                  <span style={{ opacity: 0.5 }}>•</span>
+                  <span>{selectedTxForDetails.category}</span>
+                </div>
+              </div>
+
+              {/* Payer Info Card */}
+              <div className="glass-card" style={{ padding: "0.85rem 1rem", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <div
+                    style={{
+                      ...styles.avatar,
+                      width: "36px",
+                      height: "36px",
+                      fontSize: "0.95rem",
+                      background: getAvatarGradient(selectedTxForDetails.isPayer ? currentUser?.userId || "" : selectedFriend?.id || ""),
+                    }}
+                  >
+                    {(selectedTxForDetails.isPayer ? "Y" : selectedFriend?.name?.charAt(0) || "F").toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em" }}>
+                      {selectedTxForDetails.type === "expense" ? "Paid by" : "Sender"}
+                    </div>
+                    <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                      {selectedTxForDetails.isPayer ? "You" : selectedTxForDetails.payerName}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "1rem", fontWeight: 800, color: "var(--primary)" }}>
+                  {formatCurrency(selectedTxForDetails.amount, selectedTxForDetails.currency)}
+                </div>
+              </div>
+
+              {/* Split or Settlement Breakdown */}
+              {selectedTxForDetails.type === "expense" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", padding: "0 0.2rem" }}>
+                    Split Breakdown
+                  </span>
+                  <div className="glass-card" style={{ padding: "0.4rem 0.85rem", borderRadius: "12px", display: "flex", flexDirection: "column" }}>
+                    {/* User row */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0", borderBottom: "1px solid var(--border-light)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                        <div style={{ ...styles.avatar, width: "28px", height: "28px", fontSize: "0.8rem", background: getAvatarGradient(currentUser?.userId || "") }}>
+                          Y
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>You</div>
+                          {selectedTxForDetails.isPayer && (
+                            <div style={{ fontSize: "0.68rem", color: "var(--owed)", fontWeight: 600 }}>Payer</div>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                          {formatCurrency(selectedTxForDetails.mySplitAmount, selectedTxForDetails.currency)}
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>share</div>
+                      </div>
+                    </div>
+
+                    {/* Friend row */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                        <div style={{ ...styles.avatar, width: "28px", height: "28px", fontSize: "0.8rem", background: getAvatarGradient(selectedFriend?.id || "") }}>
+                          {selectedFriend?.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>{selectedFriend?.name}</div>
+                          {!selectedTxForDetails.isPayer && (
+                            <div style={{ fontSize: "0.68rem", color: "var(--owed)", fontWeight: 600 }}>Payer</div>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                          {formatCurrency(selectedTxForDetails.amount - selectedTxForDetails.mySplitAmount, selectedTxForDetails.currency)}
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>share</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Net Debt Impact */}
+                  <div style={{ padding: "0.6rem 0.85rem", borderRadius: "10px", background: selectedTxForDetails.isPayer ? "rgba(16, 185, 129, 0.08)" : "rgba(245, 158, 11, 0.08)", border: selectedTxForDetails.isPayer ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid rgba(245, 158, 11, 0.2)" }}>
+                    <div style={{ fontSize: "0.82rem", fontWeight: 600, color: selectedTxForDetails.isPayer ? "var(--owed)" : "#f59e0b" }}>
+                      {selectedTxForDetails.isPayer
+                        ? `${selectedFriend?.name} owes you ${formatCurrency(selectedTxForDetails.lentAmount, selectedTxForDetails.currency)}`
+                        : `You owe ${selectedFriend?.name} ${formatCurrency(selectedTxForDetails.borrowedAmount, selectedTxForDetails.currency)}`}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Payment summary note */
+                <div style={{ padding: "0.85rem", borderRadius: "10px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)", textAlign: "center" }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--owed)" }}>
+                    {selectedTxForDetails.isPayer
+                      ? `You paid ${selectedFriend?.name} ${formatCurrency(selectedTxForDetails.amount, selectedTxForDetails.currency)}`
+                      : `${selectedFriend?.name} paid you ${formatCurrency(selectedTxForDetails.amount, selectedTxForDetails.currency)}`}
+                  </div>
+                  <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                    This was recorded as a direct settlement payment.
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons: Delete & Edit (Only for expenses) */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", marginTop: "0.5rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-light)" }}>
+                {selectedTxForDetails.type === "expense" ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExpense(selectedTxForDetails.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        padding: "0.6rem 1rem",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        color: "var(--owes)",
+                        background: "rgba(239, 68, 68, 0.08)",
+                        border: "1px solid rgba(239, 68, 68, 0.25)",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        minHeight: "44px",
+                      }}
+                      title="Delete this expense"
+                    >
+                      <Trash2 size={16} />
+                      <span>Delete</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tx = selectedTxForDetails;
+                        setSelectedTxForDetails(null);
+                        openEditExpenseModal(tx);
+                      }}
+                      className="btn btn-primary"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.45rem",
+                        padding: "0.6rem 1.35rem",
+                        fontSize: "0.88rem",
+                        fontWeight: 700,
+                        borderRadius: "10px",
+                        minHeight: "44px",
+                      }}
+                      title="Edit this expense"
+                    >
+                      <Pencil size={15} />
+                      <span>Edit expense</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTxForDetails(null)}
+                    className="btn btn-secondary"
+                    style={{ width: "100%", justifyContent: "center", minHeight: "44px" }}
+                  >
+                    Done
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
           MODAL 1: ADD 1-ON-1 EXPENSE
       ───────────────────────────────────────────────────────────── */}
       {showAddExpenseModal && mounted && createPortal(
@@ -1244,7 +1502,7 @@ export default function FriendsClient({
           className="modal-overlay-responsive"
           style={styles.modalOverlay}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowAddExpenseModal(false);
+            if (e.target === e.currentTarget) closeAddExpenseModal();
           }}
         >
           <div className="glass-card modal-card-responsive" style={styles.modalCard}>
@@ -1253,7 +1511,7 @@ export default function FriendsClient({
               <h2 style={styles.modalTitle}>Add 1-on-1 Expense</h2>
               <button
                 type="button"
-                onClick={() => setShowAddExpenseModal(false)}
+                onClick={closeAddExpenseModal}
                 className="modal-close-btn-responsive"
                 style={styles.modalCloseBtn}
               >

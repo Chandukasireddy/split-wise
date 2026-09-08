@@ -77,8 +77,6 @@ const styles: Record<string, React.CSSProperties> = {
   page: { display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: "800px", margin: "0 auto", width: "100%" },
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" },
   title: { fontSize: "1.5rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" },
-  subtitle: { fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "0.15rem" },
-  createBtn: { padding: "0.6rem 1.15rem", fontSize: "0.875rem", gap: "0.45rem", minHeight: "42px" },
 
   /* Single-line balance bar */
   balanceStrip: {

@@ -28,8 +28,10 @@ import {
   Receipt,
   Check,
   CheckCircle2,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
+import { getAvatarGradient } from "@/lib/avatar";
 
 interface Member {
   id: string;
@@ -176,6 +178,9 @@ export default function GroupDetailsClient({
   // Edit Expense state
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
+  // Selected Expense Details state (for read-only details view)
+  const [selectedExpenseForDetails, setSelectedExpenseForDetails] = useState<Expense | null>(null);
+
   // Delete Group state
   const [showDeleteGroupModal, setShowDeleteGroupModal] = useState(false);
   const [deleteGroupLoading, setDeleteGroupLoading] = useState(false);
@@ -214,6 +219,8 @@ export default function GroupDetailsClient({
     showGroupSettingsModal ||
     showDeleteGroupModal ||
     showAddMemberModal;
+    showAddMemberModal ||
+    Boolean(selectedExpenseForDetails);
 
   useEffect(() => {
     if (isAnyModalOpen) {
@@ -232,12 +239,37 @@ export default function GroupDetailsClient({
   // navigation while a group was open.
   const members = React.useMemo(() => group.members.map((m) => m.user), [group.members]);
 
+  // Helper to completely reset the expense form so adding an expense always starts fresh at 0.00
+  const resetExpenseForm = React.useCallback(() => {
+    setEditingExpenseId(null);
+    setExpenseDesc("");
+    setExpenseAmt("");
+    setExpenseCategory("General");
+    setExpenseCurrency(group.defaultCurrency);
+    setExpenseDate(new Date().toISOString().split("T")[0]);
+    setExpensePayer(currentUser.userId);
+    setExpenseSplitType("EQUAL");
+    setExpenseConversionRate("1.0");
+    const initial: Record<string, string> = {};
+    members.forEach((m) => {
+      initial[m.id] = "true";
+    });
+    setCustomSplits(initial);
+    setFormError(null);
+  }, [currentUser.userId, group.defaultCurrency, members]);
+
+  const closeExpenseModal = React.useCallback(() => {
+    setShowExpenseModal(false);
+    resetExpenseForm();
+  }, [resetExpenseForm]);
+
   // Handle open expense modal via query param or global event
   React.useEffect(() => {
     const handleOpenModal = () => {
       setEditingExpenseId(null);
       setExpensePayer(currentUser.userId);
       setExpenseDate(new Date().toISOString().split("T")[0]);
+      resetExpenseForm();
       setShowExpenseModal(true);
     };
 
@@ -253,7 +285,7 @@ export default function GroupDetailsClient({
     return () => {
       window.removeEventListener("open-group-expense-modal", handleOpenModal);
     };
-  }, [currentUser.userId]);
+  }, [currentUser.userId, resetExpenseForm]);
 
   // Pre-fill helper when split type changes
   React.useEffect(() => {
@@ -339,6 +371,7 @@ export default function GroupDetailsClient({
       setExpenseCategory("General");
       setExpenseConversionRate("1.0");
       setExpenseDate(new Date().toISOString().split("T")[0]);
+      closeExpenseModal();
       router.refresh();
     } else {
       setFormError(res.error || "Failed to add expense.");
@@ -385,6 +418,8 @@ export default function GroupDetailsClient({
       if (res.success) {
         setShowExpenseModal(false);
         setEditingExpenseId(null);
+        setSelectedExpenseForDetails(null);
+        closeExpenseModal();
         router.refresh();
       } else {
         alert(res.error || "Failed to delete expense");
@@ -467,6 +502,7 @@ export default function GroupDetailsClient({
       setEditingExpenseId(null);
       setExpenseDesc(""); setExpenseAmt(""); setExpenseCategory("General"); setExpenseConversionRate("1.0");
       setExpenseDate(new Date().toISOString().split("T")[0]);
+      closeExpenseModal();
       router.refresh();
     } else {
       setFormError(res.error || "Failed to update expense.");
@@ -782,10 +818,10 @@ export default function GroupDetailsClient({
                               ...styles.expenseRow,
                               borderBottom: index < items.length - 1 ? "1px solid var(--border-light)" : "none",
                             }}
-                            onClick={() => openEditModal(expense)}
+                            onClick={() => setSelectedExpenseForDetails(expense)}
                             role="button"
                             tabIndex={0}
-                            title="Click to edit expense"
+                            title="Click to view expense details"
                           >
                             <div style={styles.expenseRowLeft}>
                               {/* Date badge */}
@@ -1058,18 +1094,235 @@ export default function GroupDetailsClient({
 
       {/* ----------------- MODALS ----------------- */}
 
+      {/* Read-Only Expense Details Modal (Industry standard view before edit) */}
+      {mounted && selectedExpenseForDetails && createPortal(
+        <div
+          className="modal-overlay-responsive"
+          style={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedExpenseForDetails(null);
+          }}
+        >
+          <div className="glass-card modal-card-responsive" style={styles.modalCard}>
+            <div className="modal-drag-handle" />
+            <div style={styles.modalHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div
+                  style={{
+                    ...styles.categoryIconBadge,
+                    backgroundColor: `${CATEGORY_COLORS[selectedExpenseForDetails.category] || "#64748b"}15`,
+                    color: CATEGORY_COLORS[selectedExpenseForDetails.category] || "#64748b",
+                    border: `1px solid ${CATEGORY_COLORS[selectedExpenseForDetails.category] || "#64748b"}35`,
+                  }}
+                >
+                  {getCategoryIcon(selectedExpenseForDetails.category, 16)}
+                </div>
+                <h2 style={styles.modalTitle}>Expense Details</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedExpenseForDetails(null)}
+                className="modal-close-btn-responsive"
+                style={styles.modalCloseBtn}
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem", padding: "0.5rem 0" }}>
+              {/* Hero Amount & Description */}
+              <div style={{ textAlign: "center", padding: "0.25rem 0 0.5rem" }}>
+                <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.03em" }}>
+                  {formatCurrency(selectedExpenseForDetails.amount, selectedExpenseForDetails.currency)}
+                </div>
+                {selectedExpenseForDetails.currency !== group.defaultCurrency && (
+                  <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: "0.15rem" }}>
+                    ≈ {formatCurrency(selectedExpenseForDetails.convertedAmount, group.defaultCurrency)} in {group.defaultCurrency}
+                  </div>
+                )}
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", marginTop: "0.45rem", marginBottom: "0.35rem" }}>
+                  {selectedExpenseForDetails.description}
+                </h3>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78rem", color: "var(--text-secondary)", background: "var(--surface-hover)", padding: "0.25rem 0.65rem", borderRadius: "20px" }}>
+                  <Calendar size={13} color="var(--primary)" />
+                  <span>{new Date(selectedExpenseForDetails.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>
+                  <span style={{ opacity: 0.5 }}>•</span>
+                  <span>{selectedExpenseForDetails.category}</span>
+                </div>
+              </div>
+
+              {/* Payer Info Card */}
+              <div className="glass-card" style={{ padding: "0.85rem 1rem", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  {(() => {
+                    const payer = members.find((m) => m.id === selectedExpenseForDetails.payerId);
+                    const isCurrentUser = selectedExpenseForDetails.payerId === currentUser.userId;
+                    const payerName = isCurrentUser ? "You" : payer?.name || "Group member";
+                    return (
+                      <>
+                        <div
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            fontSize: "0.95rem",
+                            color: "#fff",
+                            background: getAvatarGradient(selectedExpenseForDetails.payerId),
+                          }}
+                        >
+                          {payerName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.04em" }}>Paid by</div>
+                          <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>{payerName}</div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+                <div style={{ fontSize: "1rem", fontWeight: 800, color: "var(--primary)" }}>
+                  {formatCurrency(selectedExpenseForDetails.amount, selectedExpenseForDetails.currency)}
+                </div>
+              </div>
+
+              {/* Split Breakdown */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 0.2rem" }}>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)" }}>
+                    Split Breakdown ({selectedExpenseForDetails.splits.length})
+                  </span>
+                  <span style={{ fontSize: "0.72rem", color: "var(--primary)", background: "rgba(16,185,129,0.1)", padding: "0.15rem 0.5rem", borderRadius: "20px", fontWeight: 600 }}>
+                    {selectedExpenseForDetails.splitType}
+                  </span>
+                </div>
+
+                <div className="glass-card" style={{ padding: "0.4rem 0.85rem", borderRadius: "12px", display: "flex", flexDirection: "column" }}>
+                  {selectedExpenseForDetails.splits.map((split, idx) => {
+                    const member = members.find((m) => m.id === split.userId);
+                    const isUser = split.userId === currentUser.userId;
+                    const isPayer = split.userId === selectedExpenseForDetails.payerId;
+                    const name = isUser ? "You" : member?.name || split.user?.name || "Member";
+
+                    return (
+                      <div
+                        key={split.id || split.userId}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0.6rem 0",
+                          borderBottom: idx < selectedExpenseForDetails.splits.length - 1 ? "1px solid var(--border-light)" : "none",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                          <div
+                            style={{
+                              width: "28px",
+                              height: "28px",
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              fontSize: "0.8rem",
+                              color: "#fff",
+                              background: getAvatarGradient(split.userId),
+                            }}
+                          >
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>{name}</div>
+                            {isPayer && (
+                              <div style={{ fontSize: "0.68rem", color: "var(--owed)", fontWeight: 600 }}>Payer</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                            {formatCurrency(split.amount, group.defaultCurrency)}
+                          </div>
+                          {split.percentage != null && (
+                            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{split.percentage}%</div>
+                          )}
+                          {split.shares != null && (
+                            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{split.shares} share{split.shares !== 1 ? "s" : ""}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons: Delete & Edit */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", marginTop: "0.5rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-light)" }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteExpense(selectedExpenseForDetails.id)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.6rem 1rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    color: "var(--owes)",
+                    background: "rgba(239, 68, 68, 0.08)",
+                    border: "1px solid rgba(239, 68, 68, 0.25)",
+                    borderRadius: "10px",
+                    cursor: "pointer",
+                    minHeight: "44px",
+                  }}
+                  title="Delete this expense"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const exp = selectedExpenseForDetails;
+                    setSelectedExpenseForDetails(null);
+                    openEditModal(exp);
+                  }}
+                  className="btn btn-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.45rem",
+                    padding: "0.6rem 1.35rem",
+                    fontSize: "0.88rem",
+                    fontWeight: 700,
+                    borderRadius: "10px",
+                    minHeight: "44px",
+                  }}
+                  title="Edit this expense"
+                >
+                  <Pencil size={15} />
+                  <span>Edit expense</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Add / Edit Expense Modal */}
       {mounted && showExpenseModal && createPortal(
         <div 
           className="modal-overlay-responsive" 
           style={styles.modalOverlay}
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowExpenseModal(false);
-              setEditingExpenseId(null);
-              setExpenseDate(new Date().toISOString().split("T")[0]);
-              setFormError(null);
-            }
+            if (e.target === e.currentTarget) closeExpenseModal();
           }}
         >
           <div className="glass-card modal-card-responsive" style={styles.modalCard}>
@@ -1078,7 +1331,7 @@ export default function GroupDetailsClient({
               <h2 style={styles.modalTitle}>{editingExpenseId ? "Edit Expense" : "Add an Expense"}</h2>
               <button 
                 type="button" 
-                onClick={() => { setShowExpenseModal(false); setEditingExpenseId(null); setExpenseDate(new Date().toISOString().split("T")[0]); setFormError(null); }} 
+                onClick={closeExpenseModal} 
                 className="modal-close-btn-responsive" 
                 style={styles.modalCloseBtn}
                 title="Close dialog"
