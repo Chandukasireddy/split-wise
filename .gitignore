@@ -45,5 +45,7 @@ next-env.d.ts
 *.db-journal
 *.sqlite
 
+# python virtual environments
+.venv/
+venv/
 
-.vercel

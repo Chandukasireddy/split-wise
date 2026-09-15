@@ -79,6 +79,7 @@ interface GroupDetailsClientProps {
     description: string | null;
     defaultCurrency: string;
     simplifyDebts?: boolean;
+    createdById?: string;
     members: { user: Member }[];
     expenses: Expense[];
     payments: Payment[];
@@ -218,7 +219,6 @@ export default function GroupDetailsClient({
     showSettleModal ||
     showGroupSettingsModal ||
     showDeleteGroupModal ||
-    showAddMemberModal;
     showAddMemberModal ||
     Boolean(selectedExpenseForDetails);
 
@@ -1986,6 +1986,20 @@ export default function GroupDetailsClient({
               </div>
 
               <div className="modal-actions-responsive" style={styles.modalActions}>
+                {(!group.createdById || group.createdById === currentUser.userId) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGroupSettingsModal(false);
+                      setShowDeleteGroupModal(true);
+                    }}
+                    style={styles.deleteGroupBtn}
+                    title="Delete this group"
+                  >
+                    <Trash2 size={15} />
+                    <span>Delete Group</span>
+                  </button>
+                )}
                 <button type="button" onClick={() => { setShowGroupSettingsModal(false); setSettingsError(null); }} className="btn btn-secondary">
                   Cancel
                 </button>
@@ -2708,6 +2722,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "10px",
     cursor: "pointer",
     transition: "background 0.2s",
+    marginRight: "auto",
   },
   deleteGroupConfirmBtn: {
     display: "inline-flex",
