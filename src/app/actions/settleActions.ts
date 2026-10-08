@@ -119,3 +119,66 @@ export async function settleUp(
     return { success: false, error: "Failed to record settlement." };
   }
 }
+
+/**
+ * Delete a recorded settlement payment
+ */
+export async function deletePayment(
+  paymentId: string
+): Promise<SettleActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized. Please log in." };
+  }
+
+  try {
+    const payment = await db.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        payer: { select: { name: true } },
+        payee: { select: { name: true } },
+      },
+    });
+
+    if (!payment) {
+      return { success: false, error: "Payment not found." };
+    }
+
+    // Must be either the payer or the payee (or group member if group payment)
+    if (session.userId !== payment.payerId && session.userId !== payment.payeeId) {
+      return {
+        success: false,
+        error: "You are not authorized to delete this settlement payment.",
+      };
+    }
+
+    await db.$transaction(async (tx) => {
+      // 1. Delete payment
+      await tx.payment.delete({
+        where: { id: paymentId },
+      });
+
+      // 2. Log Activity
+      await tx.activityLog.create({
+        data: {
+          userId: session.userId,
+          groupId: payment.groupId,
+          description: `deleted a settlement: ${payment.payer?.name || "Someone"} paid ${payment.payee?.name || "someone"} ${payment.currency} ${payment.amount.toFixed(2)}`,
+        },
+      });
+    });
+
+    if (payment.groupId) {
+      revalidatePath(`/groups/${payment.groupId}`);
+    }
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
+
+    return { success: true };
+  } catch (err) {
+    console.error("Delete payment error:", err);
+    return { success: false, error: "Failed to delete settlement payment." };
+  }
+}
+

@@ -35,7 +35,7 @@ import {
   getFriends,
 } from "@/app/actions/userActions";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
-import { settleUp } from "@/app/actions/settleActions";
+import { settleUp, deletePayment } from "@/app/actions/settleActions";
 import { getAvatarGradient } from "@/lib/avatar";
 import PersonalNotesSection from "@/components/PersonalNotesSection";
 import { FriendNotesData, getFriendNotes } from "@/app/actions/noteActions";
@@ -372,6 +372,7 @@ export default function FriendsClient({
   const [editPayerId, setEditPayerId] = useState("");
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deletePaymentLoading, setDeletePaymentLoading] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
   // Settle Up Modal state
@@ -821,6 +822,31 @@ export default function FriendsClient({
       alert("Failed to delete expense.");
     } finally {
       setDeleteLoading(false);
+    }
+  }
+
+  // Delete payment settlement
+  async function handleDeletePayment(paymentId?: string) {
+    if (!paymentId || !selectedFriend) return;
+    if (!confirm("Are you sure you want to delete this settlement payment? This will restore the previous balance.")) {
+      return;
+    }
+
+    setDeletePaymentLoading(true);
+    try {
+      const res = await deletePayment(paymentId);
+      if (res.success) {
+        setSelectedTxForDetails(null);
+        await reloadLedger(selectedFriend.id);
+        await handleReloadFriends();
+      } else {
+        alert(res.error || "Failed to delete settlement payment.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete settlement payment.");
+    } finally {
+      setDeletePaymentLoading(false);
     }
   }
 
@@ -1562,14 +1588,41 @@ export default function FriendsClient({
                     </button>
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTxForDetails(null)}
-                    className="btn btn-secondary"
-                    style={{ width: "100%", justifyContent: "center", minHeight: "44px" }}
-                  >
-                    Done
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePayment(selectedTxForDetails.id)}
+                      disabled={deletePaymentLoading}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        padding: "0.6rem 1rem",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        color: "var(--owes)",
+                        background: "rgba(239, 68, 68, 0.08)",
+                        border: "1px solid rgba(239, 68, 68, 0.25)",
+                        borderRadius: "10px",
+                        cursor: deletePaymentLoading ? "not-allowed" : "pointer",
+                        minHeight: "44px",
+                        opacity: deletePaymentLoading ? 0.6 : 1,
+                      }}
+                      title="Delete this settlement payment"
+                    >
+                      <Trash2 size={16} />
+                      <span>{deletePaymentLoading ? "Deleting…" : "Delete"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTxForDetails(null)}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, justifyContent: "center", minHeight: "44px" }}
+                    >
+                      Done
+                    </button>
+                  </>
                 )}
               </div>
             </div>
