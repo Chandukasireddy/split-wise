@@ -996,4 +996,63 @@ select.form-input option {
   transform: translateX(20px);
 }
 
+/* Segmented Tabs Switcher (e.g. Friends vs Notes) */
+.segmented-tabs-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 3px;
+  width: 100%;
+}
+
+.segmented-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.segmented-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.segmented-tab-btn.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.segmented-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: var(--border-light);
+  color: var(--text-muted);
+}
+
+.segmented-tab-btn.active .segmented-badge {
+  background: var(--primary-glow);
+  color: var(--primary);
+}
+
+
 
