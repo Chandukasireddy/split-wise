@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Check,
   Pencil,
+  StickyNote,
 } from "lucide-react";
 import { searchUsers, addMembersToGroup } from "@/app/actions/groupActions";
 import {
@@ -31,10 +32,13 @@ import {
   FriendLedgerData,
   FriendLedgerTransaction,
   getFriendLedger,
+  getFriends,
 } from "@/app/actions/userActions";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/expenseActions";
 import { settleUp } from "@/app/actions/settleActions";
 import { getAvatarGradient } from "@/lib/avatar";
+import PersonalNotesSection from "@/components/PersonalNotesSection";
+import { FriendNotesData, getFriendNotes } from "@/app/actions/noteActions";
 
 const CATEGORIES = [
   "General",
@@ -115,15 +119,61 @@ interface FriendsClientProps {
   initialFriends: FriendInfo[];
   userGroups: GroupInfo[];
   currentUser: CurrentUserProps | null;
+  initialNotes?: FriendNotesData;
 }
 
 export default function FriendsClient({
   initialFriends,
   userGroups,
   currentUser,
+  initialNotes,
 }: FriendsClientProps) {
   const [friends, setFriends] = useState<FriendInfo[]>(initialFriends);
   const [selectedFriend, setSelectedFriend] = useState<FriendInfo | null>(null);
+  const [activeTab, setActiveTab] = useState<"contacts" | "notes">("contacts");
+  const [notesData, setNotesData] = useState<FriendNotesData>(
+    initialNotes || { notes: [], totalsByCurrency: {}, uniqueFriendNames: [] }
+  );
+
+  async function handleReloadNotes() {
+    try {
+      const data = await getFriendNotes();
+      setNotesData(data);
+    } catch (err) {
+      console.error("Error refreshing notes:", err);
+    }
+  }
+
+  async function handleReloadFriends() {
+    try {
+      const f = await getFriends();
+      try {
+        const saved = localStorage.getItem(friendsStorageKey);
+        if (saved) {
+          const orderIds: string[] = JSON.parse(saved);
+          if (Array.isArray(orderIds) && orderIds.length > 0) {
+            const map = new Map(f.map((item) => [item.id, item]));
+            const ordered: FriendInfo[] = [];
+            for (const id of orderIds) {
+              const item = map.get(id);
+              if (item) {
+                ordered.push(item);
+                map.delete(id);
+              }
+            }
+            map.forEach((item) => ordered.push(item));
+            setFriends(ordered);
+            return;
+          }
+        }
+      } catch {
+        // Ignore
+      }
+      setFriends(f);
+    } catch (err) {
+      console.error("Error refreshing friends:", err);
+    }
+  }
 
   // Draggable / Custom sorting state
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -356,7 +406,6 @@ export default function FriendsClient({
     showAddExpenseModal ||
     showEditExpenseModal ||
     showSettleModal ||
-    showAddToGroupModal;
     showAddToGroupModal ||
     Boolean(selectedTxForDetails);
 
@@ -831,8 +880,42 @@ export default function FriendsClient({
             <h1 style={styles.title}>Friends</h1>
           </div>
 
-          {/* Friends List */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+          {/* Segmented Navigation: Your Contacts vs Personal Notes */}
+          <div className="segmented-tabs-wrapper">
+            <button
+              type="button"
+              onClick={() => setActiveTab("contacts")}
+              className={`segmented-tab-btn ${activeTab === "contacts" ? "active" : ""}`}
+            >
+              <span>Your Contacts</span>
+              <span className="segmented-badge">{friends.length}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("notes")}
+              className={`segmented-tab-btn ${activeTab === "notes" ? "active" : ""}`}
+            >
+              <StickyNote size={14} />
+              <span>Personal Notes</span>
+              {notesData.notes.filter((n) => !n.isSettled).length > 0 && (
+                <span className="segmented-badge">
+                  {notesData.notes.filter((n) => !n.isSettled).length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {activeTab === "notes" ? (
+            <PersonalNotesSection
+              notesData={notesData}
+              onRefreshNotes={handleReloadNotes}
+              onRefreshFriends={handleReloadFriends}
+              onSwitchToContacts={() => setActiveTab("contacts")}
+              currentUserId={currentUser?.userId}
+            />
+          ) : (
+            /* Friends List */
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)" }}>
@@ -1035,6 +1118,7 @@ export default function FriendsClient({
               </div>
             )}
           </div>
+          )}
         </div>
       )}
 
