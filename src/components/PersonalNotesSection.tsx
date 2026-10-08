@@ -21,11 +21,13 @@ import {
   PiggyBank,
   Settings,
   DollarSign,
+  Pencil,
 } from "lucide-react";
 import {
   FriendNotesData,
   FriendNoteItem,
   addFriendNote,
+  updateFriendNote,
   toggleSettleFriendNote,
   deleteFriendNote,
   linkNoteToRegisteredUser,
@@ -130,6 +132,19 @@ export default function PersonalNotesSection({
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Edit Note Form state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingNote, setEditingNote] = useState<FriendNoteItem | null>(null);
+  const [editFriendName, setEditFriendName] = useState("");
+  const [editNoteType, setEditNoteType] = useState<"LENT" | "BORROWED">("LENT");
+  const [editAmount, setEditAmount] = useState("");
+  const [editCurrency, setEditCurrency] = useState("EUR");
+  const [editCategory, setEditCategory] = useState("General");
+  const [editDate, setEditDate] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Link Note Modal state
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -267,6 +282,73 @@ export default function PersonalNotesSection({
       setError("An unexpected error occurred.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Open Edit Note modal
+  function openEditNoteModal(note: FriendNoteItem) {
+    setEditingNote(note);
+    setEditFriendName(note.friendName);
+    setEditNoteType(note.type);
+    setEditAmount(note.amount.toString());
+    setEditCurrency(note.currency);
+    setEditCategory(note.category);
+    setEditDate(note.date ? note.date.split("T")[0] : new Date().toISOString().split("T")[0]);
+    setEditDescription(note.description || "");
+    setEditError(null);
+    setShowEditModal(true);
+  }
+
+  // Submit Edit Note
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingNote) return;
+
+    const parsedAmount = parseFloat(editAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setEditError("Please enter a valid amount greater than 0.");
+      return;
+    }
+    if (!editFriendName.trim()) {
+      setEditError("Please enter a person's name.");
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError(null);
+
+    try {
+      const res = await updateFriendNote({
+        id: editingNote.id,
+        friendName: editFriendName.trim(),
+        type: editNoteType,
+        amount: parsedAmount,
+        currency: editCurrency,
+        category: editCategory,
+        date: editDate,
+        description: editDescription.trim() || undefined,
+      });
+
+      if (res.success) {
+        setShowEditModal(false);
+        if (
+          selectedPersonName &&
+          selectedPersonName.toLowerCase() === editingNote.friendName.toLowerCase()
+        ) {
+          setSelectedPersonName(editFriendName.trim());
+        }
+        setEditingNote(null);
+        await onRefreshNotes();
+        if (onRefreshFriends) {
+          await onRefreshFriends();
+        }
+      } else {
+        setEditError(res.error || "Failed to update note.");
+      }
+    } catch {
+      setEditError("An unexpected error occurred while updating note.");
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -849,8 +931,8 @@ export default function PersonalNotesSection({
                   )}
                 </div>
 
-                {/* Action buttons */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", paddingTop: "0.45rem", borderTop: "1px solid var(--border-light)" }}>
+                {/* Settle status toggle */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "0.5rem", paddingTop: "0.2rem" }}>
                   <button
                     type="button"
                     onClick={() => handleToggleSettle(selectedNoteForDetails.id)}
@@ -859,14 +941,55 @@ export default function PersonalNotesSection({
                     <CheckCircle2 size={14} color={selectedNoteForDetails.isSettled ? "var(--primary)" : "var(--text-muted)"} />
                     <span>{selectedNoteForDetails.isSettled ? "Mark as Pending" : "Mark as Settled"}</span>
                   </button>
+                </div>
 
+                {/* Bottom Action buttons: Delete & Edit note (Exact match to Contacts Expense Details) */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", marginTop: "0.45rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-light)" }}>
                   <button
                     type="button"
                     onClick={() => handleDeleteNote(selectedNoteForDetails.id)}
-                    style={styles.deleteBtn}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.4rem",
+                      padding: "0.6rem 1rem",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: "var(--owes)",
+                      background: "rgba(239, 68, 68, 0.08)",
+                      border: "1px solid rgba(239, 68, 68, 0.25)",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      minHeight: "42px",
+                    }}
                     title="Delete this note"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={16} />
+                    <span>Delete</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const note = selectedNoteForDetails;
+                      setSelectedNoteForDetails(null);
+                      openEditNoteModal(note);
+                    }}
+                    className="btn btn-primary"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.45rem",
+                      padding: "0.6rem 1.35rem",
+                      fontSize: "0.88rem",
+                      fontWeight: 700,
+                      borderRadius: "10px",
+                      minHeight: "42px",
+                    }}
+                    title="Edit this note"
+                  >
+                    <Pencil size={15} />
+                    <span>Edit note</span>
                   </button>
                 </div>
               </div>
@@ -877,6 +1000,9 @@ export default function PersonalNotesSection({
 
         {/* Add Note Modal (reused) */}
         {showAddModal && renderAddModal()}
+
+        {/* Edit Note Modal */}
+        {showEditModal && renderEditModal()}
 
         {/* Link User Modal (reused) */}
         {showLinkModal && renderLinkModal()}
@@ -989,6 +1115,9 @@ export default function PersonalNotesSection({
 
       {/* Add Note Modal */}
       {showAddModal && renderAddModal()}
+
+      {/* Edit Note Modal */}
+      {showEditModal && renderEditModal()}
 
       {/* Link User Modal */}
       {showLinkModal && renderLinkModal()}
@@ -1187,6 +1316,176 @@ export default function PersonalNotesSection({
                 style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem" }}
               >
                 {saving ? "Saving…" : "Save Note"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // MODAL: EDIT PERSONAL NOTE
+  // ─────────────────────────────────────────────────────────────
+  function renderEditModal() {
+    if (typeof document === "undefined" || !editingNote) return null;
+    return createPortal(
+      <div style={styles.modalOverlay}>
+        <div className="glass-card" style={styles.modalCard}>
+          <div style={styles.modalHeader}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <Pencil size={18} color="var(--primary)" />
+              <h3 style={styles.modalTitle}>Edit Personal Note</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingNote(null);
+              }}
+              style={styles.modalCloseBtn}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <form onSubmit={handleEditSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.85rem", marginTop: "0.75rem" }}>
+            {/* Direction Toggle */}
+            <div style={styles.directionToggleContainer}>
+              <button
+                type="button"
+                onClick={() => setEditNoteType("LENT")}
+                style={editNoteType === "LENT" ? styles.directionBtnLentActive : styles.directionBtn}
+              >
+                I Lent Money
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditNoteType("BORROWED")}
+                style={editNoteType === "BORROWED" ? styles.directionBtnBorrowActive : styles.directionBtn}
+              >
+                I Borrowed Money
+              </button>
+            </div>
+
+            {/* Friend Name */}
+            <div>
+              <label style={styles.fieldLabel}>Person / Friend Name *</label>
+              <input
+                type="text"
+                value={editFriendName}
+                onChange={(e) => setEditFriendName(e.target.value)}
+                placeholder="e.g. John Doe"
+                required
+                className="form-input"
+                style={{ width: "100%" }}
+              />
+            </div>
+
+            {/* Amount & Currency */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: "0.55rem" }}>
+              <div>
+                <label style={styles.fieldLabel}>Amount *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  placeholder="0.00"
+                  required
+                  className="form-input"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              <div>
+                <label style={styles.fieldLabel}>Currency</label>
+                <select
+                  value={editCurrency}
+                  onChange={(e) => setEditCurrency(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%", paddingRight: "0.5rem" }}
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Category & Date */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.55rem" }}>
+              <div>
+                <label style={styles.fieldLabel}>Category</label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%" }}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={styles.fieldLabel}>Date</label>
+                <input
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="form-input"
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label style={styles.fieldLabel}>Description (optional)</label>
+              <input
+                type="text"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="e.g. Lunch split, ticket reimbursement..."
+                className="form-input"
+                style={{ width: "100%" }}
+              />
+            </div>
+
+            {editError && (
+              <p style={{ fontSize: "0.78rem", color: "var(--expense)", margin: 0 }}>
+                {editError}
+              </p>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.4rem" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingNote(null);
+                }}
+                className="btn btn-secondary"
+                style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={editSaving}
+                className="btn btn-primary"
+                style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem" }}
+              >
+                {editSaving ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </form>

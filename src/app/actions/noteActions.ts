@@ -206,6 +206,85 @@ export async function addFriendNote(input: AddNoteInput): Promise<NoteActionResu
   }
 }
 
+export interface UpdateNoteInput {
+  id: string;
+  friendName: string;
+  type: "LENT" | "BORROWED";
+  amount: number;
+  currency: string;
+  category?: string;
+  date?: string;
+  description?: string;
+}
+
+/**
+ * Update an existing note / IOU
+ */
+export async function updateFriendNote(
+  input: UpdateNoteInput
+): Promise<NoteActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized. Please log in." };
+  }
+
+  const name = input.friendName.trim();
+  if (!name) {
+    return { success: false, error: "Friend name is required." };
+  }
+
+  if (input.amount <= 0) {
+    return { success: false, error: "Amount must be greater than 0." };
+  }
+
+  let noteDate = new Date();
+  if (input.date) {
+    const parsed = new Date(input.date);
+    if (!isNaN(parsed.getTime())) {
+      noteDate = parsed;
+    }
+  }
+
+  try {
+    const existing = await db.friendNote.findUnique({
+      where: { id: input.id },
+    });
+
+    if (!existing || existing.userId !== session.userId) {
+      return { success: false, error: "Note not found." };
+    }
+
+    await db.friendNote.update({
+      where: { id: input.id },
+      data: {
+        friendName: name,
+        type: input.type,
+        amount: parseFloat(input.amount.toFixed(2)),
+        currency: input.currency || "EUR",
+        category: input.category || "General",
+        date: noteDate,
+        description: input.description?.trim() || null,
+      },
+    });
+
+    await db.activityLog.create({
+      data: {
+        userId: session.userId,
+        description: `updated personal note for "${name}": ${input.currency || "EUR"} ${input.amount.toFixed(2)}`,
+      },
+    });
+
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating friend note:", err);
+    return { success: false, error: "Failed to update note." };
+  }
+}
+
 /**
  * Toggle settled status of a note
  */
