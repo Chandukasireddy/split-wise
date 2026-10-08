@@ -416,3 +416,233 @@ export async function linkNoteToRegisteredUser(
   }
 }
 
+/**
+ * Toggle settled status of all notes for a specific friend name
+ */
+export async function settleAllNotesForFriend(
+  friendName: string
+): Promise<NoteActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  try {
+    const trimmed = friendName.trim();
+    const notes = await db.friendNote.findMany({
+      where: {
+        userId: session.userId,
+        friendName: { equals: trimmed, mode: "insensitive" },
+      },
+    });
+
+    if (notes.length === 0) {
+      return { success: false, error: "No notes found for this person." };
+    }
+
+    const hasUnsettled = notes.some((n) => !n.isSettled);
+    const nextSettled = hasUnsettled;
+
+    await db.friendNote.updateMany({
+      where: {
+        userId: session.userId,
+        friendName: { equals: trimmed, mode: "insensitive" },
+      },
+      data: { isSettled: nextSettled },
+    });
+
+    await db.activityLog.create({
+      data: {
+        userId: session.userId,
+        description: nextSettled
+          ? `settled all notes with ${friendName}`
+          : `marked notes with ${friendName} as unsettled`,
+      },
+    });
+
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error settling all notes for friend:", err);
+    return { success: false, error: "Failed to settle notes." };
+  }
+}
+
+/**
+ * Delete all notes for a specific friend name
+ */
+export async function deleteAllNotesForFriend(
+  friendName: string
+): Promise<NoteActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  try {
+    const trimmed = friendName.trim();
+    await db.friendNote.deleteMany({
+      where: {
+        userId: session.userId,
+        friendName: { equals: trimmed, mode: "insensitive" },
+      },
+    });
+
+    await db.activityLog.create({
+      data: {
+        userId: session.userId,
+        description: `deleted personal notes for "${friendName}"`,
+      },
+    });
+
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error deleting notes for friend:", err);
+    return { success: false, error: "Failed to delete notes." };
+  }
+}
+
+/**
+ * Link and migrate all notes for a specific friend name to a registered user
+ */
+export async function linkAllNotesForFriend(
+  friendName: string,
+  registeredUserId: string
+): Promise<NoteActionResult> {
+  const session = await getCurrentUser();
+  if (!session) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  if (session.userId === registeredUserId) {
+    return { success: false, error: "You cannot link notes to yourself." };
+  }
+
+  try {
+    const trimmed = friendName.trim();
+    const notes = await db.friendNote.findMany({
+      where: {
+        userId: session.userId,
+        friendName: { equals: trimmed, mode: "insensitive" },
+      },
+    });
+
+    if (notes.length === 0) {
+      return { success: false, error: "No notes found for this person." };
+    }
+
+    const registeredUser = await db.user.findUnique({
+      where: { id: registeredUserId },
+      select: { id: true, name: true, username: true },
+    });
+
+    if (!registeredUser) {
+      return { success: false, error: "Registered user not found." };
+    }
+
+    await db.$transaction(async (tx) => {
+      for (const note of notes) {
+        const description =
+          note.description?.trim() ||
+          (note.type === "LENT"
+            ? `Lent to ${note.friendName}`
+            : `Borrowed from ${note.friendName}`);
+
+        if (note.type === "LENT") {
+          const expense = await tx.expense.create({
+            data: {
+              description,
+              amount: note.amount,
+              category: note.category,
+              currency: note.currency,
+              groupId: null,
+              payerId: session.userId,
+              splitType: "UNEQUAL",
+              conversionRate: 1.0,
+              convertedAmount: note.amount,
+              createdById: session.userId,
+              date: note.date,
+            },
+          });
+
+          await tx.expenseSplit.createMany({
+            data: [
+              {
+                expenseId: expense.id,
+                userId: registeredUser.id,
+                amount: note.amount,
+              },
+              {
+                expenseId: expense.id,
+                userId: session.userId,
+                amount: 0,
+              },
+            ],
+          });
+        } else {
+          const expense = await tx.expense.create({
+            data: {
+              description,
+              amount: note.amount,
+              category: note.category,
+              currency: note.currency,
+              groupId: null,
+              payerId: registeredUser.id,
+              splitType: "UNEQUAL",
+              conversionRate: 1.0,
+              convertedAmount: note.amount,
+              createdById: session.userId,
+              date: note.date,
+            },
+          });
+
+          await tx.expenseSplit.createMany({
+            data: [
+              {
+                expenseId: expense.id,
+                userId: session.userId,
+                amount: note.amount,
+              },
+              {
+                expenseId: expense.id,
+                userId: registeredUser.id,
+                amount: 0,
+              },
+            ],
+          });
+        }
+      }
+
+      await tx.friendNote.deleteMany({
+        where: {
+          userId: session.userId,
+          friendName: { equals: trimmed, mode: "insensitive" },
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          userId: session.userId,
+          description: `migrated personal notes for "${friendName}" to @${registeredUser.username}`,
+        },
+      });
+    });
+
+    revalidatePath("/friends");
+    revalidatePath("/dashboard");
+    revalidatePath("/activities");
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error migrating all notes for friend:", err);
+    return { success: false, error: "Failed to migrate notes to registered user." };
+  }
+}
+
